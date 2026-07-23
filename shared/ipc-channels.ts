@@ -1,0 +1,17 @@
+export const IpcChannel = {
+	macroList: "macro:list",
+	macroGet: "macro:get",
+	macroSave: "macro:save",
+	macroDelete: "macro:delete",
+	settingsGet: "settings:get",
+	settingsSet: "settings:set",
+	recordStart: "record:start",
+	recordStop: "record:stop",
+	recordPauseToggle: "record:pause-toggle",
+	recordState: "record:state",
+	recordStopped: "record:stopped",
+	playStart: "play:start",
+	playStop: "play:stop",
+	playState: "play:state",
+	hotkeysSync: "hotkeys:sync",
+} as const;
