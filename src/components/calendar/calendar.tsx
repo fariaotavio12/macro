@@ -75,7 +75,7 @@ function Calendar({
 				),
 				table: "w-full border-collapse",
 				weekdays: cn("flex", defaultClassNames.weekdays),
-				// font-normal sobrescreve o font-weight bold que o navegador aplica por padrão a <th> (elemento usado pelo Weekday do react-day-picker).
+				// font-normal sobrescreve o bold padrão do navegador para <th> (usado pelo Weekday).
 				weekday: cn(
 					"text-caption-sm text-muted-foreground rounded-md flex-1 text-center font-normal select-none",
 					defaultClassNames.weekday,
