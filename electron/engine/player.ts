@@ -3,6 +3,11 @@ import type { Macro, MouseButton, MouseMode, Step } from "../../shared/macro-typ
 import { CANONICAL_TO_NUT_KEY } from "./key-map-nut";
 import type { CanonicalKey } from "../../shared/key-map";
 
+// nut.js usa 300ms de delay por tecla e 100ms por ação de mouse por padrão — bom demais
+// pra parecer "humano" em algumas demos, mas lento demais pra reprodução de macro.
+keyboard.config.autoDelayMs = 10;
+mouse.config.autoDelayMs = 10;
+
 const NUT_BUTTON: Record<MouseButton, Button> = {
 	left: Button.LEFT,
 	right: Button.RIGHT,
