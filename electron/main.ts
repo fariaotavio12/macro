@@ -41,12 +41,19 @@ function createWindow() {
 		},
 	});
 
+	mainWindow.webContents.on("console-message", (event) => {
+		console.log(`[renderer:${event.level}] ${event.message} (${event.sourceId}:${event.lineNumber})`);
+	});
+	mainWindow.webContents.on("did-fail-load", (_event, errorCode, errorDescription, validatedURL) => {
+		console.log(`[did-fail-load] ${errorCode} ${errorDescription} url=${validatedURL}`);
+	});
+	mainWindow.webContents.on("render-process-gone", (_event, details) => {
+		console.log(`[render-process-gone] ${JSON.stringify(details)}`);
+	});
+
 	if (VITE_DEV_SERVER_URL) {
 		mainWindow.loadURL(VITE_DEV_SERVER_URL);
 		mainWindow.webContents.openDevTools();
-		mainWindow.webContents.on("console-message", (event) => {
-			console.log(`[renderer:${event.level}] ${event.message} (${event.sourceId}:${event.lineNumber})`);
-		});
 	} else {
 		mainWindow.loadFile(path.join(RENDERER_DIST, "index.html"));
 	}

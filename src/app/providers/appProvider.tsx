@@ -8,7 +8,7 @@ import { SidebarProvider } from "@/components/sidebar";
 import { Toaster } from "@/components/sonner/sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { BrowserRouter } from "react-router-dom";
+import { HashRouter } from "react-router-dom";
 
 type AppProviderProps = {
 	children: ReactNode;
@@ -23,7 +23,7 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
 	return (
 		<ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
 			<QueryClientProvider client={tanStackQueryClient}>
-				<BrowserRouter>
+				<HashRouter>
 					<AuthProvider>
 						<SidebarProvider>
 							<OverlayPreferenceProvider>
@@ -32,7 +32,7 @@ export const AppProvider = ({ children }: AppProviderProps): ReactNode => {
 						</SidebarProvider>
 					</AuthProvider>
 					<Toaster />
-				</BrowserRouter>
+				</HashRouter>
 			</QueryClientProvider>
 		</ThemeProvider>
 	);
