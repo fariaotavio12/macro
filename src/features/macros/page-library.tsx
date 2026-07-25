@@ -21,10 +21,11 @@ import {
 } from "@/components";
 import { Typography } from "@/components/typography";
 import type { ColumnDef } from "@tanstack/react-table";
-import { MoreVertical, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
+import { Copy, MoreVertical, Pencil, Play, Plus, Square, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { useDeleteMacro, useMacros, useSaveMacro } from "./api";
 import { MacroEditorSheet } from "./components/macro-editor-sheet";
+import { refreshStepIds } from "./components/step-list";
 import { usePlayState } from "./hooks/use-play-state";
 import type { Macro } from "@shared/macro-types";
 
@@ -40,6 +41,15 @@ const blankMacro = (): Macro => ({
 	steps: [],
 	repeat: { mode: "once" },
 	mouseMode: "jump",
+	active: false,
+});
+
+const duplicateMacro = (macro: Macro): Macro => ({
+	...macro,
+	id: crypto.randomUUID(),
+	name: `${macro.name} (cópia)`,
+	steps: macro.steps.map(refreshStepIds),
+	hotkey: undefined,
 	active: false,
 });
 
@@ -68,6 +78,16 @@ export const PageLibrary = () => {
 			}
 		},
 		[playStates],
+	);
+
+	const handleDuplicate = useCallback(
+		(macro: Macro) => {
+			saveMacro.mutate(duplicateMacro(macro), {
+				onError: (err) => notify.error(err.message),
+				onSuccess: () => notify.success("Macro duplicada"),
+			});
+		},
+		[saveMacro],
 	);
 
 	const handleConfirmDelete = () => {
@@ -155,6 +175,10 @@ export const PageLibrary = () => {
 								<Pencil className="size-4" />
 								Editar
 							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => handleDuplicate(macro)}>
+								<Copy className="size-4" />
+								Duplicar
+							</DropdownMenuItem>
 							<DropdownMenuItem variant="destructive" onClick={() => setMacroToDelete(macro)}>
 								<Trash2 className="size-4" />
 								Excluir
@@ -164,7 +188,7 @@ export const PageLibrary = () => {
 				</div>
 			);
 		},
-		[playStates, handlePlayToggle],
+		[playStates, handlePlayToggle, handleDuplicate],
 	);
 
 	const pagination = {

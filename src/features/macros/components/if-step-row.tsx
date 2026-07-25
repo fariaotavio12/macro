@@ -14,8 +14,9 @@ import {
 	Switch,
 } from "@/components";
 import { Typography } from "@/components/typography";
+import { cn } from "@/app/utils/cn";
 import type { Condition, Step } from "@shared/macro-types";
-import { ArrowDown, ArrowUp, ChevronDown, GitBranch, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Copy, GitBranch, GripVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { AddStepMenu } from "./add-step-menu";
 import { ImagePickerField } from "./image-picker-field";
@@ -32,6 +33,13 @@ type IfStepRowProps = {
 	onRemove: () => void;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
+	onDuplicate: () => void;
+	isDragging?: boolean;
+	isDragOver?: boolean;
+	onDragStart?: () => void;
+	onDragOver?: () => void;
+	onDrop?: () => void;
+	onDragEnd?: () => void;
 };
 
 const DEFAULT_PIXEL_CONDITION: Condition = { kind: "pixelColor", x: 0, y: 0, color: "#000000", tolerance: 10 };
@@ -65,15 +73,47 @@ const Branch = ({ title, steps, onChange }: BranchProps) => {
 	);
 };
 
-export const IfStepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown }: IfStepRowProps) => {
+export const IfStepRow = ({
+	step,
+	index,
+	total,
+	onChange,
+	onRemove,
+	onMoveUp,
+	onMoveDown,
+	onDuplicate,
+	isDragging,
+	isDragOver,
+	onDragStart,
+	onDragOver,
+	onDrop,
+	onDragEnd,
+}: IfStepRowProps) => {
 	const { condition } = step;
 
 	const updateCondition = (next: Condition) => onChange({ ...step, condition: next });
 
 	return (
-		<Card size="sm">
+		<Card
+			size="sm"
+			draggable
+			onDragStart={onDragStart}
+			onDragOver={(e) => {
+				e.preventDefault();
+				onDragOver?.();
+			}}
+			onDrop={(e) => {
+				e.preventDefault();
+				onDrop?.();
+			}}
+			onDragEnd={onDragEnd}
+			className={cn("transition-[opacity,box-shadow]", isDragging && "opacity-50", isDragOver && "ring-primary ring-2")}
+		>
 			<CardContent className="flex flex-col gap-3">
 				<div className="flex items-center gap-3">
+					<span className="text-muted-foreground flex size-9 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing">
+						<GripVertical className="size-4" />
+					</span>
 					<span className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-full">
 						<GitBranch className="text-muted-foreground size-4" />
 					</span>
@@ -84,6 +124,9 @@ export const IfStepRow = ({ step, index, total, onChange, onRemove, onMoveUp, on
 						</Button>
 						<Button type="button" variant="ghost" size="icon-xs" disabled={index === total - 1} onClick={onMoveDown}>
 							<ArrowDown className="size-3.5" />
+						</Button>
+						<Button type="button" variant="ghost" size="icon-xs" title="Duplicar passo" onClick={onDuplicate}>
+							<Copy className="size-3.5" />
 						</Button>
 						<Button type="button" variant="ghost" size="icon-xs" onClick={onRemove}>
 							<Trash2 className="text-destructive size-3.5" />

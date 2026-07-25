@@ -1,6 +1,21 @@
 import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components";
+import { cn } from "@/app/utils/cn";
 import type { MouseButton, Step } from "@shared/macro-types";
-import { ArrowDown, ArrowUp, Crosshair, GitBranch, ImageIcon, Keyboard, MousePointer2, MousePointerClick, Timer, Trash2, Type } from "lucide-react";
+import {
+	ArrowDown,
+	ArrowUp,
+	Copy,
+	Crosshair,
+	GitBranch,
+	GripVertical,
+	ImageIcon,
+	Keyboard,
+	MousePointer2,
+	MousePointerClick,
+	Timer,
+	Trash2,
+	Type,
+} from "lucide-react";
 import { useState } from "react";
 import { HotkeyCapture } from "./hotkey-capture";
 import { ImagePickerField } from "./image-picker-field";
@@ -40,14 +55,53 @@ type StepRowProps = {
 	onRemove: () => void;
 	onMoveUp: () => void;
 	onMoveDown: () => void;
+	onDuplicate: () => void;
+	isDragging?: boolean;
+	isDragOver?: boolean;
+	onDragStart?: () => void;
+	onDragOver?: () => void;
+	onDrop?: () => void;
+	onDragEnd?: () => void;
 };
 
-export const StepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMoveDown }: StepRowProps) => {
+export const StepRow = ({
+	step,
+	index,
+	total,
+	onChange,
+	onRemove,
+	onMoveUp,
+	onMoveDown,
+	onDuplicate,
+	isDragging,
+	isDragOver,
+	onDragStart,
+	onDragOver,
+	onDrop,
+	onDragEnd,
+}: StepRowProps) => {
 	const { icon: Icon, label } = STEP_META[step.type];
 
 	return (
-		<Card size="sm">
+		<Card
+			size="sm"
+			draggable
+			onDragStart={onDragStart}
+			onDragOver={(e) => {
+				e.preventDefault();
+				onDragOver?.();
+			}}
+			onDrop={(e) => {
+				e.preventDefault();
+				onDrop?.();
+			}}
+			onDragEnd={onDragEnd}
+			className={cn("transition-[opacity,box-shadow]", isDragging && "opacity-50", isDragOver && "ring-primary ring-2")}
+		>
 			<CardContent className="flex items-center gap-3">
+				<span className="text-muted-foreground flex size-9 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing">
+					<GripVertical className="size-4" />
+				</span>
 				<span className="bg-muted flex size-9 shrink-0 items-center justify-center rounded-full">
 					<Icon className="text-muted-foreground size-4" />
 				</span>
@@ -180,6 +234,9 @@ export const StepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMo
 					</Button>
 					<Button type="button" variant="ghost" size="icon-xs" disabled={index === total - 1} onClick={onMoveDown}>
 						<ArrowDown className="size-3.5" />
+					</Button>
+					<Button type="button" variant="ghost" size="icon-xs" title="Duplicar passo" onClick={onDuplicate}>
+						<Copy className="size-3.5" />
 					</Button>
 					<Button type="button" variant="ghost" size="icon-xs" onClick={onRemove}>
 						<Trash2 className="text-destructive size-3.5" />

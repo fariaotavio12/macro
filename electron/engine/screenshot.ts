@@ -1,7 +1,7 @@
 import { Region as NutRegion, screen, imageToJimp } from "@nut-tree-fork/nut-js";
 import * as Jimp from "jimp";
 import type { Region } from "../../shared/macro-types";
-import { minimizeMainWindow } from "../window-ref";
+import { minimizeMainWindow, showMainWindow } from "../window-ref";
 import { saveImageBuffer } from "./storage";
 
 function sleep(ms: number) {
@@ -21,6 +21,9 @@ export async function captureScreen(): Promise<CaptureResult> {
 	await hideAppWindow();
 	const jimpImage = imageToJimp(await screen.grab());
 	const dataUrl = await jimpImage.getBase64Async(Jimp.MIME_PNG);
+	// A tela de seleção (ponto/recorte) roda dentro da própria janela principal — sem
+	// restaurar aqui ela fica minimizada e a UI de seleção nunca aparece pro usuário.
+	showMainWindow();
 	return { dataUrl, width: jimpImage.bitmap.width, height: jimpImage.bitmap.height };
 }
 
