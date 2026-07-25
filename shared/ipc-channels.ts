@@ -3,6 +3,7 @@ export const IpcChannel = {
 	macroGet: "macro:get",
 	macroSave: "macro:save",
 	macroDelete: "macro:delete",
+	macroChanged: "macro:changed",
 	settingsGet: "settings:get",
 	settingsSet: "settings:set",
 	recordStart: "record:start",
@@ -14,4 +15,8 @@ export const IpcChannel = {
 	playStop: "play:stop",
 	playState: "play:state",
 	hotkeysSync: "hotkeys:sync",
+	screenshotCapture: "screenshot:capture",
+	screenshotCropSave: "screenshot:crop-save",
+	dockToggle: "dock:toggle",
+	windowRestoreMain: "window:restore-main",
 } as const;

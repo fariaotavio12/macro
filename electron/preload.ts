@@ -1,12 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
-import type { Macro, PlayState, RecordState, Settings, Step } from "../shared/macro-types";
+import type { Macro, PlayState, RecordState, Region, Settings, Step } from "../shared/macro-types";
+import type { CaptureResult, CropSaveResult } from "./engine/screenshot";
 
 const macroBridge = {
 	list: (): Promise<Macro[]> => ipcRenderer.invoke(IpcChannel.macroList),
 	get: (id: string): Promise<Macro | null> => ipcRenderer.invoke(IpcChannel.macroGet, id),
 	save: (macro: Macro): Promise<Macro> => ipcRenderer.invoke(IpcChannel.macroSave, macro),
 	delete: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.macroDelete, id),
+	onChanged: (listener: (macros: Macro[]) => void) => {
+		const handler = (_event: Electron.IpcRendererEvent, macros: Macro[]) => listener(macros);
+		ipcRenderer.on(IpcChannel.macroChanged, handler);
+		return () => {
+			ipcRenderer.removeListener(IpcChannel.macroChanged, handler);
+		};
+	},
 };
 
 const settingsBridge = {
@@ -46,11 +54,27 @@ const playBridge = {
 	},
 };
 
+const screenshotBridge = {
+	capture: (): Promise<CaptureResult> => ipcRenderer.invoke(IpcChannel.screenshotCapture),
+	cropSave: (region: Region): Promise<CropSaveResult> => ipcRenderer.invoke(IpcChannel.screenshotCropSave, region),
+};
+
+const dockBridge = {
+	toggle: (expanded: boolean): Promise<void> => ipcRenderer.invoke(IpcChannel.dockToggle, expanded),
+};
+
+const windowBridge = {
+	restoreMain: (): Promise<void> => ipcRenderer.invoke(IpcChannel.windowRestoreMain),
+};
+
 const api = {
 	macro: macroBridge,
 	settings: settingsBridge,
 	record: recordBridge,
 	play: playBridge,
+	screenshot: screenshotBridge,
+	dock: dockBridge,
+	window: windowBridge,
 };
 
 export type MacroApi = typeof api;

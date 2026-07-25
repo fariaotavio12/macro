@@ -1,30 +1,56 @@
-import { AppSheet, notify } from "@/components";
+import {
+	AppSheet,
+	Card,
+	CardContent,
+	notify,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+	Switch,
+} from "@/components";
 import { Typography } from "@/components/typography";
+import type { DockPosition } from "@shared/macro-types";
 import { useEffect, useRef, useState } from "react";
 import { useSaveSettings, useSettings } from "../api";
 import { HotkeyCapture } from "./hotkey-capture";
+import { SettingsRow } from "./settings-row";
 
 type SettingsSheetProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 };
 
+const DOCK_POSITION_OPTIONS: { value: DockPosition; label: string }[] = [
+	{ value: "right-top", label: "Direita (topo)" },
+	{ value: "right-center", label: "Direita (centro)" },
+	{ value: "right-bottom", label: "Direita (baixo)" },
+	{ value: "left-top", label: "Esquerda (topo)" },
+	{ value: "left-center", label: "Esquerda (centro)" },
+	{ value: "left-bottom", label: "Esquerda (baixo)" },
+];
+
 export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 	const { data: settings } = useSettings();
 	const saveSettings = useSaveSettings();
 	const [panicKey, setPanicKey] = useState("Escape");
+	const [dockEnabled, setDockEnabled] = useState(true);
+	const [dockPosition, setDockPosition] = useState<DockPosition>("right-center");
 	const initialized = useRef(false);
 
 	useEffect(() => {
 		if (settings && !initialized.current) {
 			setPanicKey(settings.panicKey);
+			setDockEnabled(settings.dockEnabled);
+			setDockPosition(settings.dockPosition);
 			initialized.current = true;
 		}
 	}, [settings]);
 
 	const handleSave = () => {
 		saveSettings.mutate(
-			{ panicKey },
+			{ panicKey, dockEnabled, dockPosition },
 			{
 				onSuccess: () => {
 					notify.success("Configurações salvas");
@@ -55,6 +81,34 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 				</div>
 				<HotkeyCapture value={panicKey} onChange={(combo) => setPanicKey(combo ?? "Escape")} />
 			</div>
+
+			<Card size="sm">
+				<CardContent className="flex flex-col divide-y">
+					<SettingsRow
+						label="Aba lateral ao minimizar"
+						description="Mostra uma aba retrátil na borda da tela ao fechar a janela principal, em vez de sumir de vez."
+					>
+						<Switch checked={dockEnabled} onCheckedChange={setDockEnabled} />
+					</SettingsRow>
+
+					{dockEnabled && (
+						<SettingsRow label="Posição da aba" description="Onde a aba fica encostada na tela.">
+							<Select value={dockPosition} onValueChange={(v) => setDockPosition(v as DockPosition)}>
+								<SelectTrigger size="sm" className="w-40">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{DOCK_POSITION_OPTIONS.map((option) => (
+										<SelectItem key={option.value} value={option.value}>
+											{option.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</SettingsRow>
+					)}
+				</CardContent>
+			</Card>
 		</AppSheet>
 	);
 };

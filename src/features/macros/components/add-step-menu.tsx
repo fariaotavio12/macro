@@ -6,7 +6,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components";
 import type { Step } from "@shared/macro-types";
-import { Keyboard, MousePointer2, MousePointerClick, Plus, Timer, Type } from "lucide-react";
+import { GitBranch, ImageIcon, Keyboard, MousePointer2, MousePointerClick, Plus, Timer, Type } from "lucide-react";
 
 const OPTIONS: { type: Step["type"]; label: string; icon: typeof MousePointer2; build: () => Omit<Step, "id"> }[] = [
 	{ type: "moveMouse", label: "Mover mouse", icon: MousePointer2, build: () => ({ type: "moveMouse", x: 0, y: 0 }) },
@@ -19,6 +19,23 @@ const OPTIONS: { type: Step["type"]; label: string; icon: typeof MousePointer2; 
 	{ type: "type", label: "Digitar texto", icon: Type, build: () => ({ type: "type", text: "" }) },
 	{ type: "key", label: "Tecla", icon: Keyboard, build: () => ({ type: "key", keys: [] }) },
 	{ type: "wait", label: "Esperar", icon: Timer, build: () => ({ type: "wait", ms: 500 }) },
+	{
+		type: "clickImage",
+		label: "Clicar na imagem",
+		icon: ImageIcon,
+		build: () => ({ type: "clickImage", imagePath: "", tolerance: 0.9, timeoutMs: 3000, button: "left" }),
+	},
+	{
+		type: "if",
+		label: "Condição (SE)",
+		icon: GitBranch,
+		build: () => ({
+			type: "if",
+			condition: { kind: "pixelColor", x: 0, y: 0, color: "#000000", tolerance: 10 },
+			then: [],
+			else: [],
+		}),
+	},
 ];
 
 type AddStepMenuProps = {

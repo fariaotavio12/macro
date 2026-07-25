@@ -1,19 +1,31 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, net, protocol } from "electron";
+import fs from "node:fs";
 import path from "node:path";
 import { registerIpcHandlers } from "./ipc";
 import { setMainWindow } from "./window-ref";
 import { ensureUiohookStarted, shutdownUiohook } from "./engine/uiohook-runtime";
 import { registerHotkeyListener, syncHotkeysFromStorage } from "./engine/hotkeys";
+import { resolveImagePath } from "./engine/storage";
 import { createTray } from "./tray";
 import { isQuitting } from "./window-ref";
+import { showDockWindow } from "./dock-window";
+
+export const MACRO_IMAGE_PROTOCOL = "macro-image";
+
+protocol.registerSchemesAsPrivileged([
+	{
+		scheme: MACRO_IMAGE_PROTOCOL,
+		privileges: { standard: true, secure: true, supportFetchAPI: true, bypassCSP: true },
+	},
+]);
 
 process.env.APP_ROOT = path.join(__dirname, "..");
 
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 const ICON_PATH = VITE_DEV_SERVER_URL
-	? path.join(process.env.APP_ROOT, "public", "favicon.ico")
-	: path.join(RENDERER_DIST, "favicon.ico");
+	? path.join(process.env.APP_ROOT, "public", "app-icon.png")
+	: path.join(RENDERER_DIST, "app-icon.png");
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -43,6 +55,7 @@ function createWindow() {
 		if (!isQuitting()) {
 			event.preventDefault();
 			mainWindow?.hide();
+			showDockWindow();
 		}
 	});
 
@@ -70,8 +83,18 @@ app.on("before-quit", () => {
 	shutdownUiohook();
 });
 
+function registerMacroImageProtocol() {
+	protocol.handle(MACRO_IMAGE_PROTOCOL, (request) => {
+		const fileName = new URL(request.url).hostname;
+		const filePath = resolveImagePath(fileName);
+		if (!fs.existsSync(filePath)) return new Response(null, { status: 404 });
+		return net.fetch(`file://${filePath.replace(/\\/g, "/")}`);
+	});
+}
+
 app.whenReady().then(() => {
 	registerIpcHandlers();
+	registerMacroImageProtocol();
 	ensureUiohookStarted();
 	registerHotkeyListener();
 	syncHotkeysFromStorage();

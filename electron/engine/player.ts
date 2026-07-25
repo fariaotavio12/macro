@@ -2,6 +2,7 @@ import { Button, mouse, keyboard, Point, straightTo } from "@nut-tree-fork/nut-j
 import type { Macro, MouseButton, MouseMode, Step } from "../../shared/macro-types";
 import { CANONICAL_TO_NUT_KEY } from "./key-map-nut";
 import type { CanonicalKey } from "../../shared/key-map";
+import { matchesCondition, waitForImage } from "./vision";
 
 // nut.js usa 300ms de delay por tecla e 100ms por ação de mouse por padrão — bom demais
 // pra parecer "humano" em algumas demos, mas lento demais pra reprodução de macro.
@@ -34,6 +35,13 @@ async function moveMouse(x: number, y: number, mouseMode: MouseMode) {
 	}
 }
 
+async function executeSteps(steps: Step[], mouseMode: MouseMode, isAborted: () => boolean) {
+	for (const step of steps) {
+		if (isAborted()) return;
+		await executeStep(step, mouseMode, isAborted);
+	}
+}
+
 async function executeStep(step: Step, mouseMode: MouseMode, isAborted: () => boolean) {
 	switch (step.type) {
 		case "moveMouse":
@@ -56,16 +64,26 @@ async function executeStep(step: Step, mouseMode: MouseMode, isAborted: () => bo
 		case "wait":
 			await sleep(step.ms, isAborted);
 			return;
+		case "clickImage": {
+			const region = await waitForImage(step.imagePath, step.tolerance, step.timeoutMs, undefined, isAborted);
+			// não achou a imagem dentro do timeout: pula o passo em vez de travar a macro
+			if (!region) return;
+			await moveMouse(region.x + region.width / 2, region.y + region.height / 2, mouseMode);
+			await mouse.click(NUT_BUTTON[step.button]);
+			return;
+		}
+		case "if": {
+			const matched = await matchesCondition(step.condition);
+			await executeSteps(matched ? step.then : step.else, mouseMode, isAborted);
+			return;
+		}
 	}
 }
 
 export async function playMacro(macro: Macro, isAborted: () => boolean, onIteration?: (count: number) => void) {
 	let iteration = 0;
 	do {
-		for (const step of macro.steps) {
-			if (isAborted()) return;
-			await executeStep(step, macro.mouseMode, isAborted);
-		}
+		await executeSteps(macro.steps, macro.mouseMode, isAborted);
 		iteration += 1;
 		onIteration?.(iteration);
 		if (macro.repeat.mode === "once") return;

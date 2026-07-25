@@ -1,7 +1,10 @@
 import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components";
 import type { MouseButton, Step } from "@shared/macro-types";
-import { ArrowDown, ArrowUp, Keyboard, MousePointer2, MousePointerClick, Timer, Trash2, Type } from "lucide-react";
+import { ArrowDown, ArrowUp, Crosshair, GitBranch, ImageIcon, Keyboard, MousePointer2, MousePointerClick, Timer, Trash2, Type } from "lucide-react";
+import { useState } from "react";
 import { HotkeyCapture } from "./hotkey-capture";
+import { ImagePickerField } from "./image-picker-field";
+import { ScreenshotPicker } from "./screenshot-picker";
 
 const STEP_META: Record<Step["type"], { icon: typeof MousePointer2; label: string }> = {
 	moveMouse: { icon: MousePointer2, label: "Mover mouse" },
@@ -9,6 +12,24 @@ const STEP_META: Record<Step["type"], { icon: typeof MousePointer2; label: strin
 	type: { icon: Type, label: "Digitar texto" },
 	key: { icon: Keyboard, label: "Tecla" },
 	wait: { icon: Timer, label: "Esperar" },
+	clickImage: { icon: ImageIcon, label: "Clicar na imagem" },
+	if: { icon: GitBranch, label: "Condição (SE)" },
+};
+
+type PointPickerButtonProps = {
+	onPick: (point: { x: number; y: number }) => void;
+};
+
+export const PointPickerButton = ({ onPick }: PointPickerButtonProps) => {
+	const [open, setOpen] = useState(false);
+	return (
+		<>
+			<Button type="button" variant="ghost" size="icon-xs" title="Selecionar ponto na tela" onClick={() => setOpen(true)}>
+				<Crosshair className="size-3.5" />
+			</Button>
+			<ScreenshotPicker open={open} onOpenChange={setOpen} mode="point" onPick={onPick} />
+		</>
+	);
 };
 
 type StepRowProps = {
@@ -50,6 +71,7 @@ export const StepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMo
 								value={step.y}
 								onChange={(e) => onChange({ ...step, y: Number(e.target.value) })}
 							/>
+							<PointPickerButton onPick={(point) => onChange({ ...step, x: point.x, y: point.y })} />
 						</>
 					)}
 
@@ -79,6 +101,7 @@ export const StepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMo
 								value={step.y}
 								onChange={(e) => onChange({ ...step, y: Number(e.target.value) })}
 							/>
+							<PointPickerButton onPick={(point) => onChange({ ...step, x: point.x, y: point.y })} />
 						</>
 					)}
 
@@ -109,6 +132,45 @@ export const StepRow = ({ step, index, total, onChange, onRemove, onMoveUp, onMo
 							/>
 							<span className="text-muted-foreground text-xs">ms</span>
 						</div>
+					)}
+
+					{step.type === "clickImage" && (
+						<>
+							<ImagePickerField imagePath={step.imagePath} onChange={(imagePath) => onChange({ ...step, imagePath })} />
+							<Select value={step.button} onValueChange={(v) => onChange({ ...step, button: v as MouseButton })}>
+								<SelectTrigger size="sm" className="w-28">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="left">Esquerdo</SelectItem>
+									<SelectItem value="right">Direito</SelectItem>
+									<SelectItem value="middle">Meio</SelectItem>
+								</SelectContent>
+							</Select>
+							<div className="flex items-center gap-1">
+								<Input
+									inputSize="sm"
+									type="number"
+									min={0}
+									max={1}
+									step={0.01}
+									className="w-20"
+									value={step.tolerance}
+									onChange={(e) => onChange({ ...step, tolerance: Number(e.target.value) })}
+								/>
+								<span className="text-muted-foreground text-xs">confiança</span>
+							</div>
+							<div className="flex items-center gap-1">
+								<Input
+									inputSize="sm"
+									type="number"
+									className="w-24"
+									value={step.timeoutMs}
+									onChange={(e) => onChange({ ...step, timeoutMs: Number(e.target.value) })}
+								/>
+								<span className="text-muted-foreground text-xs">ms timeout</span>
+							</div>
+						</>
 					)}
 				</div>
 

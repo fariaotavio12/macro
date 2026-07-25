@@ -27,6 +27,17 @@ export function minimizeMainWindow() {
 	}
 }
 
+export function showMainWindow() {
+	if (mainWindow && !mainWindow.isDestroyed()) {
+		mainWindow.show();
+		mainWindow.focus();
+	}
+}
+
+export function isMainWindowVisible() {
+	return !!mainWindow && !mainWindow.isDestroyed() && mainWindow.isVisible();
+}
+
 export function broadcast(channel: string, ...args: unknown[]) {
 	for (const win of BrowserWindow.getAllWindows()) {
 		if (!win.isDestroyed()) {

@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, Tray } from "electron";
 import { markQuitting } from "./window-ref";
+import { hideDockWindow, showDockWindow } from "./dock-window";
 
 let tray: Tray | null = null;
 
@@ -15,6 +16,7 @@ export function createTray(mainWindow: BrowserWindow, iconPath: string) {
 			click: () => {
 				mainWindow.show();
 				mainWindow.focus();
+				hideDockWindow();
 			},
 		},
 		{
@@ -30,9 +32,11 @@ export function createTray(mainWindow: BrowserWindow, iconPath: string) {
 	tray.on("click", () => {
 		if (mainWindow.isVisible()) {
 			mainWindow.hide();
+			showDockWindow();
 		} else {
 			mainWindow.show();
 			mainWindow.focus();
+			hideDockWindow();
 		}
 	});
 }

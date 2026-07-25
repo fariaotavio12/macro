@@ -3,7 +3,6 @@ import {
 	Button,
 	Card,
 	CardContent,
-	EmptyState,
 	Input,
 	notify,
 	Select,
@@ -23,36 +22,15 @@ import {
 import { Typography } from "@/components/typography";
 import type { Macro, MouseMode, RecordState, RepeatMode, Step } from "@shared/macro-types";
 import { Circle } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useSaveMacro } from "../api";
 import { AddStepMenu } from "./add-step-menu";
 import { HotkeyCapture } from "./hotkey-capture";
-import { StepRow } from "./step-row";
+import { SettingsRow } from "./settings-row";
+import { StepList } from "./step-list";
 
 const withFreshIds = (steps: Step[]): Step[] => steps.map((step) => ({ ...step, id: crypto.randomUUID() }));
 const IDLE_RECORD_STATE: RecordState = { recording: false, paused: false };
-
-type SettingsRowProps = {
-	label: string;
-	description?: string;
-	children: ReactNode;
-};
-
-const SettingsRow = ({ label, description, children }: SettingsRowProps) => (
-	<div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-		<div className="flex flex-col gap-0.5">
-			<Typography variant="body-sm" className="font-medium">
-				{label}
-			</Typography>
-			{description && (
-				<Typography variant="caption" className="text-muted-foreground">
-					{description}
-				</Typography>
-			)}
-		</div>
-		<div className="shrink-0">{children}</div>
-	</div>
-);
 
 type MacroEditorSheetProps = {
 	macro: Macro;
@@ -89,27 +67,6 @@ export const MacroEditorSheet = ({ macro, mode, open, onOpenChange }: MacroEdito
 			window.api.record.start();
 			notify.info("Gravando... a janela foi minimizada. Use a janelinha flutuante para pausar/parar.");
 		}
-	};
-
-	const updateStep = (index: number, step: Step) => {
-		setDraft((prev) => {
-			const steps = [...prev.steps];
-			steps[index] = step;
-			return { ...prev, steps };
-		});
-	};
-
-	const removeStep = (index: number) => {
-		setDraft((prev) => ({ ...prev, steps: prev.steps.filter((_, i) => i !== index) }));
-	};
-
-	const moveStep = (index: number, direction: -1 | 1) => {
-		setDraft((prev) => {
-			const steps = [...prev.steps];
-			const target = index + direction;
-			[steps[index], steps[target]] = [steps[target], steps[index]];
-			return { ...prev, steps };
-		});
 	};
 
 	const handleSave = () => {
@@ -170,24 +127,11 @@ export const MacroEditorSheet = ({ macro, mode, open, onOpenChange }: MacroEdito
 							<AddStepMenu onAdd={(step) => setDraft((prev) => ({ ...prev, steps: [...prev.steps, step] }))} />
 						</div>
 
-						<div className="flex flex-col gap-2">
-							{draft.steps.length === 0 ? (
-								<EmptyState title="Nenhum passo ainda" message="Grave ou adicione o primeiro passo desta macro." />
-							) : (
-								draft.steps.map((step, index) => (
-									<StepRow
-										key={step.id}
-										step={step}
-										index={index}
-										total={draft.steps.length}
-										onChange={(next) => updateStep(index, next)}
-										onRemove={() => removeStep(index)}
-										onMoveUp={() => moveStep(index, -1)}
-										onMoveDown={() => moveStep(index, 1)}
-									/>
-								))
-							)}
-						</div>
+						<StepList
+							steps={draft.steps}
+							onChange={(steps) => setDraft((prev) => ({ ...prev, steps }))}
+							emptyMessage="Grave ou adicione o primeiro passo desta macro."
+						/>
 					</TabsContent>
 
 					<TabsContent value="settings">

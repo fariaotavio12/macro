@@ -1,16 +1,22 @@
 import { ipcMain } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
-import type { Macro, Settings } from "../shared/macro-types";
+import type { Macro, Region, Settings } from "../shared/macro-types";
 import * as storage from "./engine/storage";
 import { startPlaying, stopPlaying } from "./engine/play-manager";
 import { isPaused, pauseRecording, resumeRecording, startRecording, stopRecording } from "./engine/recorder";
 import { assertNoHotkeyConflict, assertPanicKeyNoConflict, syncHotkeysFromStorage } from "./engine/hotkeys";
-import { broadcast, minimizeMainWindow } from "./window-ref";
+import { captureScreen, saveScreenshotCrop } from "./engine/screenshot";
+import { broadcast, minimizeMainWindow, showMainWindow } from "./window-ref";
 import { hideRecordingIndicator, showRecordingIndicator } from "./recording-indicator";
+import { hideDockWindow, refreshDockFromSettings, toggleDockExpanded } from "./dock-window";
 import type { RecordState } from "../shared/macro-types";
 
 function broadcastRecordState(recording: boolean) {
 	broadcast(IpcChannel.recordState, { recording, paused: recording && isPaused() } satisfies RecordState);
+}
+
+function broadcastMacrosChanged() {
+	broadcast(IpcChannel.macroChanged, storage.listMacros());
 }
 
 export function registerIpcHandlers() {
@@ -20,17 +26,20 @@ export function registerIpcHandlers() {
 		assertNoHotkeyConflict(macro);
 		const saved = storage.saveMacro(macro);
 		syncHotkeysFromStorage();
+		broadcastMacrosChanged();
 		return saved;
 	});
 	ipcMain.handle(IpcChannel.macroDelete, (_event, id: string) => {
 		storage.deleteMacro(id);
 		syncHotkeysFromStorage();
+		broadcastMacrosChanged();
 	});
 	ipcMain.handle(IpcChannel.settingsGet, () => storage.getSettings());
 	ipcMain.handle(IpcChannel.settingsSet, (_event, settings: Settings) => {
 		assertPanicKeyNoConflict(settings);
 		const saved = storage.setSettings(settings);
 		syncHotkeysFromStorage();
+		refreshDockFromSettings();
 		return saved;
 	});
 
@@ -66,4 +75,13 @@ export function registerIpcHandlers() {
 	});
 
 	ipcMain.handle(IpcChannel.hotkeysSync, () => syncHotkeysFromStorage());
+
+	ipcMain.handle(IpcChannel.screenshotCapture, () => captureScreen());
+	ipcMain.handle(IpcChannel.screenshotCropSave, (_event, region: Region) => saveScreenshotCrop(region));
+
+	ipcMain.handle(IpcChannel.dockToggle, (_event, expanded: boolean) => toggleDockExpanded(expanded));
+	ipcMain.handle(IpcChannel.windowRestoreMain, () => {
+		showMainWindow();
+		hideDockWindow();
+	});
 }

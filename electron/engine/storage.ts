@@ -1,14 +1,38 @@
 import { app } from "electron";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { Macro, Settings } from "../../shared/macro-types";
 
-const DEFAULT_SETTINGS: Settings = { panicKey: "Escape" };
+const DEFAULT_SETTINGS: Settings = { panicKey: "Escape", dockEnabled: true, dockPosition: "right-center" };
 
 function getMacrosDir() {
 	const dir = path.join(app.getPath("userData"), "macros");
 	fs.mkdirSync(dir, { recursive: true });
 	return dir;
+}
+
+export function getImagesDir() {
+	const dir = path.join(getMacrosDir(), "images");
+	fs.mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
+/** Resolve um `imagePath` (nome de arquivo salvo em um Step) para o caminho absoluto real. */
+export function resolveImagePath(imagePath: string) {
+	return path.join(getImagesDir(), path.basename(imagePath));
+}
+
+/** Salva um PNG em `images/` e devolve o nome do arquivo (o que fica salvo no Step, nunca o caminho absoluto). */
+export function saveImageBuffer(buffer: Buffer): string {
+	const fileName = `${crypto.randomUUID()}.png`;
+	fs.writeFileSync(path.join(getImagesDir(), fileName), buffer);
+	return fileName;
+}
+
+export function deleteImage(imagePath: string): void {
+	const filePath = resolveImagePath(imagePath);
+	if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
 }
 
 function getSettingsPath() {
