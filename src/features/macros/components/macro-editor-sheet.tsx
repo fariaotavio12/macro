@@ -198,6 +198,16 @@ export const MacroEditorSheet = ({ macro, mode, open, onOpenChange }: MacroEdito
 										onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, active: checked }))}
 									/>
 								</SettingsRow>
+
+								<SettingsRow
+									label="Só disparar com o jogo em foco"
+									description="Impede que um toque acidental no atalho reproduza a macro em cima de outro app. O botão de executar sempre funciona. Configure o título da janela em Configurações."
+								>
+									<Switch
+										checked={draft.requireGameFocus ?? false}
+										onCheckedChange={(checked) => setDraft((prev) => ({ ...prev, requireGameFocus: checked }))}
+									/>
+								</SettingsRow>
 							</CardContent>
 						</Card>
 					</TabsContent>

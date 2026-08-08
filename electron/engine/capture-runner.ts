@@ -1,10 +1,14 @@
-import { Button, getActiveWindow, keyboard, mouse, Point, screen } from "@nut-tree-fork/nut-js";
+import { Button, keyboard, mouse, Point, screen } from "@nut-tree-fork/nut-js";
 import { IpcChannel } from "../../shared/ipc-channels";
 import type { CanonicalKey } from "../../shared/key-map";
 import type { CaptureProfile, CaptureRunSummary, CaptureTarget } from "../../shared/capture-types";
 import { sendToRenderer } from "../window-ref";
 import { CANONICAL_TO_NUT_KEY } from "./key-map-nut";
 import { findAllImages } from "./vision";
+import { checkWindowFocus } from "./window-focus";
+
+/** De onde veio o disparo. Clique manual ignora a trava de foco: foi intencional. */
+export type TriggerSource = "hotkey" | "manual";
 
 type FiredTarget = { x: number; y: number; at: number };
 
@@ -29,25 +33,9 @@ function sleep(ms: number, isAborted: () => boolean): Promise<void> {
 	});
 }
 
-/**
- * Trava de foco: sem ela, um toque acidental no atalho aperta a tecla da pokébola
- * no navegador ou no Discord. Falha em aberto — se não dá para saber qual janela está
- * ativa, o disparo (que foi deliberado do usuário) segue em frente.
- * Devolve o título encontrado para a interface conseguir explicar por que não disparou.
- */
-async function checkGameFocus(profile: CaptureProfile): Promise<{ focused: boolean; activeTitle?: string }> {
-	if (!profile.requireGameFocus) return { focused: true };
-	const expected = profile.gameWindowTitle?.trim();
-	if (!expected) return { focused: true };
-	try {
-		const active = await getActiveWindow();
-		const title = await active.title;
-		console.log(`[capture] janela ativa: "${title}" | esperado conter: "${expected}"`);
-		return { focused: title.toLowerCase().includes(expected.toLowerCase()), activeTitle: title };
-	} catch (error) {
-		console.warn("[capture] não foi possível ler a janela ativa, seguindo sem a trava:", error);
-		return { focused: true };
-	}
+async function checkGameFocus(profile: CaptureProfile, source: TriggerSource) {
+	if (source === "manual" || !profile.requireGameFocus) return { focused: true, activeTitle: undefined };
+	return checkWindowFocus(profile.gameWindowTitle);
 }
 
 function resolveKeys(combo: string) {
@@ -57,8 +45,10 @@ function resolveKeys(combo: string) {
 		.filter(Boolean);
 }
 
+// 40% do MENOR lado: com metade do maior lado, um recorte mais alto que o tile do jogo
+// engolia o corpo do tile de baixo como se fosse o mesmo alvo.
 function cooldownRadius(profile: CaptureProfile, target: CaptureTarget) {
-	return profile.cooldownRadiusPx ?? Math.max(Math.max(target.width, target.height) / 2, 12);
+	return profile.cooldownRadiusPx ?? Math.max(Math.min(target.width, target.height) * 0.4, 8);
 }
 
 function centerOf(target: CaptureTarget) {
@@ -70,12 +60,17 @@ function centerOf(target: CaptureTarget) {
  * tela**: se o personagem andar entre um acionamento e outro os corpos mudam de lugar e o
  * cooldown perde a referência — por isso o TTL curto por padrão.
  */
-function filterByCooldown(profile: CaptureProfile, targets: CaptureTarget[]) {
-	if (profile.targetCooldownMs <= 0) return { fresh: targets, skipped: 0 };
-
+function filterByCooldown(profile: CaptureProfile, targets: CaptureTarget[], firedThisRun: FiredTarget[]) {
 	const now = Date.now();
-	const fired = (firedByProfile.get(profile.id) ?? []).filter((entry) => now - entry.at < profile.targetCooldownMs);
-	firedByProfile.set(profile.id, fired);
+	const fromProfile =
+		profile.targetCooldownMs > 0
+			? (firedByProfile.get(profile.id) ?? []).filter((entry) => now - entry.at < profile.targetCooldownMs)
+			: [];
+	if (profile.targetCooldownMs > 0) firedByProfile.set(profile.id, fromProfile);
+
+	// firedThisRun entra sempre: sem ele, a segunda passada rejogaria pokébola nos mesmos
+	// corpos quando o cooldown do perfil está desligado.
+	const fired = [...fromProfile, ...firedThisRun];
 
 	const isOnCooldown = (target: CaptureTarget) => {
 		const center = centerOf(target);
@@ -115,15 +110,15 @@ async function parkMouse(profile: CaptureProfile, origin: { x: number; y: number
 }
 
 /** Uma varredura: acha os corpos visíveis agora e joga pokébola em cada um. */
-export async function runCaptureOnce(profile: CaptureProfile): Promise<CaptureRunSummary> {
+export async function runCaptureOnce(profile: CaptureProfile, source: TriggerSource): Promise<CaptureRunSummary> {
 	const startedAt = Date.now();
 	const isAborted = () => aborted.has(profile.id);
 
 	const enabledTemplates = profile.templates.filter((template) => template.enabled && template.imagePath);
 	if (enabledTemplates.length === 0) {
-		return { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0, reason: "no-templates" };
+		return { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0, passes: 0, reason: "no-templates" };
 	}
-	const focus = await checkGameFocus(profile);
+	const focus = await checkGameFocus(profile, source);
 	if (!focus.focused) {
 		return {
 			scanMs: 0,
@@ -131,45 +126,74 @@ export async function runCaptureOnce(profile: CaptureProfile): Promise<CaptureRu
 			found: 0,
 			fired: 0,
 			skippedByCooldown: 0,
+			passes: 0,
 			reason: "no-focus",
 			activeWindowTitle: focus.activeTitle,
 		};
 	}
 
 	const origin = await mouse.getPosition();
-
-	emitState(profile.id, "scanning");
-	const scanStartedAt = Date.now();
-	const targets = await findAllImages(enabledTemplates, {
-		region: profile.scanRegion,
-		excludeRegions: profile.excludeRegions,
-		maxTargets: profile.maxTargets,
-	});
-	const scanMs = Date.now() - scanStartedAt;
-
-	const { fresh, skipped } = filterByCooldown(profile, targets);
-	const selected = fresh.slice(0, profile.maxTargets);
-
-	emitState(profile.id, "acting");
 	const ballKeys = resolveKeys(profile.ballKey);
+	// Alvos já atingidos nesta rodada. Separado do cooldown do perfil porque as passadas
+	// precisam se enxergar mesmo com o cooldown desligado.
+	const firedThisRun: FiredTarget[] = [];
+
+	let scanMs = 0;
+	let found = 0;
 	let fired = 0;
+	let skipped = 0;
+	let passes = 0;
 
-	for (const target of selected) {
+	// Corpo empilhado fica escondido atrás do de cima: não dá para detectar antes do primeiro
+	// ser capturado e sumir. Por isso a rodada varre de novo depois de jogar, até não achar
+	// mais nada novo ou esgotar as passadas.
+	const maxPasses = Math.max(profile.rescanPasses, 1);
+	for (let pass = 0; pass < maxPasses; pass += 1) {
 		if (isAborted()) break;
-		const center = centerOf(target);
-		await mouse.setPosition(new Point(center.x, center.y));
-		await sleep(profile.delayBeforeKeyMs, isAborted);
-		if (isAborted()) break;
-
-		if (ballKeys.length > 0) {
-			await keyboard.pressKey(...ballKeys);
-			await keyboard.releaseKey(...ballKeys);
+		if (pass > 0) {
+			await sleep(profile.rescanDelayMs, isAborted);
+			if (isAborted()) break;
 		}
-		if (profile.clickAfterKey) await mouse.click(Button.LEFT);
 
-		rememberFired(profile.id, center);
-		fired += 1;
-		await sleep(profile.delayBetweenTargetsMs, isAborted);
+		emitState(profile.id, "scanning");
+		const scanStartedAt = Date.now();
+		const targets = await findAllImages(enabledTemplates, {
+			region: profile.scanRegion,
+			excludeRegions: profile.excludeRegions,
+			maxTargets: profile.maxTargets,
+			maxOverlap: profile.maxOverlap,
+		});
+		scanMs += Date.now() - scanStartedAt;
+		passes = pass + 1;
+
+		const { fresh, skipped: skippedNow } = filterByCooldown(profile, targets, firedThisRun);
+		skipped += skippedNow;
+		found += fresh.length;
+		const selected = fresh.slice(0, profile.maxTargets);
+		// Passada sem alvo novo: ou não sobrou corpo, ou o de baixo ainda não apareceu —
+		// insistir só gastaria tempo com o cursor preso.
+		if (selected.length === 0) break;
+
+		emitState(profile.id, "acting");
+		for (const target of selected) {
+			if (isAborted()) break;
+			const center = centerOf(target);
+			await mouse.setPosition(new Point(center.x, center.y));
+			await sleep(profile.delayBeforeKeyMs, isAborted);
+			if (isAborted()) break;
+
+			if (ballKeys.length > 0) {
+				await keyboard.pressKey(...ballKeys);
+				await keyboard.releaseKey(...ballKeys);
+			}
+			if (profile.clickAfterKey) await mouse.click(Button.LEFT);
+
+			const entry = { ...center, at: Date.now() };
+			firedThisRun.push(entry);
+			rememberFired(profile.id, center);
+			fired += 1;
+			await sleep(profile.delayBetweenTargetsMs, isAborted);
+		}
 	}
 
 	// Roda inclusive quando abortado: a tecla de pânico não pode largar o cursor
@@ -179,9 +203,10 @@ export async function runCaptureOnce(profile: CaptureProfile): Promise<CaptureRu
 	return {
 		scanMs,
 		totalMs: Date.now() - startedAt,
-		found: targets.length,
+		found,
 		fired,
 		skippedByCooldown: skipped,
+		passes,
 		reason: isAborted() ? "aborted" : undefined,
 	};
 }
@@ -205,6 +230,7 @@ async function runGuarded(profile: CaptureProfile, body: () => Promise<CaptureRu
 			found: 0,
 			fired: 0,
 			skippedByCooldown: 0,
+			passes: 0,
 			reason: "error",
 			errorMessage,
 		});
@@ -214,13 +240,13 @@ async function runGuarded(profile: CaptureProfile, body: () => Promise<CaptureRu
 	}
 }
 
-async function runLoop(profile: CaptureProfile) {
+async function runLoop(profile: CaptureProfile, source: TriggerSource) {
 	looping.add(profile.id);
 	try {
 		await runGuarded(profile, async () => {
-			let last: CaptureRunSummary = { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0 };
+			let last: CaptureRunSummary = { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0, passes: 0 };
 			while (looping.has(profile.id) && !aborted.has(profile.id)) {
-				last = await runCaptureOnce(profile);
+				last = await runCaptureOnce(profile, source);
 				if (last.reason === "no-templates") break;
 				await sleep(profile.loopIntervalMs, () => aborted.has(profile.id));
 			}
@@ -232,16 +258,16 @@ async function runLoop(profile: CaptureProfile) {
 }
 
 /** Ponto de entrada do atalho global e do botão da UI. */
-export function triggerCapture(profile: CaptureProfile): void {
+export function triggerCapture(profile: CaptureProfile, source: TriggerSource): void {
 	if (profile.mode === "loop") {
 		if (looping.has(profile.id)) {
 			stopCapture(profile.id);
 			return;
 		}
-		void runLoop(profile);
+		void runLoop(profile, source);
 		return;
 	}
-	void runGuarded(profile, () => runCaptureOnce(profile));
+	void runGuarded(profile, () => runCaptureOnce(profile, source));
 }
 
 export function isCaptureRunning(profileId: string): boolean {

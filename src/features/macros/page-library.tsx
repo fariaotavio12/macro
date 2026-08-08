@@ -70,7 +70,7 @@ export const PageLibrary = () => {
 
 	const handlePlayToggle = useCallback(
 		(macro: Macro) => {
-			const status = playStates[macro.id];
+			const status = playStates[macro.id]?.status;
 			if (status === "playing") {
 				window.api.play.stop(macro.id);
 			} else {
@@ -152,7 +152,7 @@ export const PageLibrary = () => {
 	const renderRowActions = useCallback(
 		(row: { original: Macro }) => {
 			const macro = row.original;
-			const isPlaying = playStates[macro.id] === "playing";
+			const isPlaying = playStates[macro.id]?.status === "playing";
 			return (
 				<div className="flex items-center justify-end gap-1">
 					<Button

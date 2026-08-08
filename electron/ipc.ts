@@ -113,7 +113,8 @@ export function registerIpcHandlers() {
 	ipcMain.handle(IpcChannel.captureRun, (_event, id: string) => {
 		const profile = captureStorage.getProfile(id);
 		if (!profile) return;
-		triggerCapture(profile);
+		// Clique no app ou no dock: sempre executa, a trava de foco vale só para o atalho.
+		triggerCapture(profile, "manual");
 	});
 	ipcMain.handle(IpcChannel.captureStop, (_event, id: string) => stopCapture(id));
 	ipcMain.handle(IpcChannel.captureScanPreview, async (_event, id: string): Promise<CaptureScanPreview | null> => {

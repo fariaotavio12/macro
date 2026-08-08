@@ -3,6 +3,7 @@ import {
 	Card,
 	CardContent,
 	HotkeyCapture,
+	Input,
 	notify,
 	Select,
 	SelectContent,
@@ -37,6 +38,7 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 	const [panicKey, setPanicKey] = useState("Escape");
 	const [dockEnabled, setDockEnabled] = useState(true);
 	const [dockPosition, setDockPosition] = useState<DockPosition>("right-center");
+	const [gameWindowTitle, setGameWindowTitle] = useState("");
 	const initialized = useRef(false);
 
 	useEffect(() => {
@@ -44,13 +46,14 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 			setPanicKey(settings.panicKey);
 			setDockEnabled(settings.dockEnabled);
 			setDockPosition(settings.dockPosition);
+			setGameWindowTitle(settings.gameWindowTitle ?? "");
 			initialized.current = true;
 		}
 	}, [settings]);
 
 	const handleSave = () => {
 		saveSettings.mutate(
-			{ panicKey, dockEnabled, dockPosition },
+			{ panicKey, dockEnabled, dockPosition, gameWindowTitle: gameWindowTitle.trim() },
 			{
 				onSuccess: () => {
 					notify.success("Configurações salvas");
@@ -84,6 +87,19 @@ export const SettingsSheet = ({ open, onOpenChange }: SettingsSheetProps) => {
 
 			<Card size="sm">
 				<CardContent className="flex flex-col divide-y">
+					<SettingsRow
+						label="Título da janela do jogo"
+						description="Trecho do título, ex: PokeXGames. Usado pelas travas de foco de macros e capturas. Vazio desliga as travas."
+					>
+						<Input
+							inputSize="sm"
+							className="w-52"
+							placeholder="PokeXGames"
+							value={gameWindowTitle}
+							onChange={(e) => setGameWindowTitle(e.target.value)}
+						/>
+					</SettingsRow>
+
 					<SettingsRow
 						label="Aba lateral ao minimizar"
 						description="Mostra uma aba retrátil na borda da tela ao fechar a janela principal, em vez de sumir de vez."

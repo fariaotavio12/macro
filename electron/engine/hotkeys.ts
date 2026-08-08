@@ -6,6 +6,10 @@ import * as storage from "./storage";
 import * as captureStorage from "./capture-storage";
 import { startPlaying, stopAll } from "./play-manager";
 import { stopAllCaptures, triggerCapture } from "./capture-runner";
+import { checkWindowFocus } from "./window-focus";
+import { IpcChannel } from "../../shared/ipc-channels";
+import type { PlayState } from "../../shared/macro-types";
+import { sendToRenderer } from "../window-ref";
 
 type Combo = string;
 
@@ -66,14 +70,33 @@ function onKeydown(e: KeydownEvent) {
 
 	const macro = hotkeyMap.get(combo);
 	if (macro?.active) {
-		void startPlaying(macro);
+		void playFromHotkey(macro);
 		return;
 	}
 
 	const profile = captureMap.get(combo);
 	if (profile?.active && !isDebounced(combo)) {
-		triggerCapture(profile);
+		triggerCapture(profile, "hotkey");
 	}
+}
+
+/**
+ * O atalho é global: sem a trava, um toque acidental fora do jogo reproduz a macro em cima
+ * do que estiver na frente — clicando e digitando em outro app.
+ */
+async function playFromHotkey(macro: Macro) {
+	if (macro.requireGameFocus) {
+		const focus = await checkWindowFocus();
+		if (!focus.focused) {
+			sendToRenderer(IpcChannel.playState, {
+				macroId: macro.id,
+				status: "blocked",
+				activeWindowTitle: focus.activeTitle,
+			} satisfies PlayState);
+			return;
+		}
+	}
+	await startPlaying(macro);
 }
 
 export function syncHotkeys(macros: Macro[], profiles: CaptureProfile[], settings: Settings) {

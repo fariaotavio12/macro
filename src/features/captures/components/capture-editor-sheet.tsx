@@ -213,6 +213,62 @@ export const CaptureEditorSheet = ({ profile, mode, open, onOpenChange }: Captur
 						<Card size="sm">
 							<CardContent className="flex flex-col divide-y">
 								<SettingsRow
+									label="Passadas por acionamento"
+									description="Corpo empilhado fica escondido atrás do de cima. Depois de jogar, o app varre de novo para pegar o que apareceu."
+								>
+									<div className="flex items-center gap-2">
+										<Input
+											inputSize="sm"
+											type="number"
+											className="w-20"
+											min={1}
+											max={10}
+											value={draft.rescanPasses}
+											onChange={(e) => patch({ rescanPasses: Math.min(Math.max(Number(e.target.value), 1), 10) })}
+										/>
+										<Typography variant="caption" className="text-muted-foreground">
+											varreduras
+										</Typography>
+									</div>
+								</SettingsRow>
+
+								<SettingsRow
+									label="Espera entre passadas"
+									description="Tempo para o corpo capturado sumir da tela antes da próxima varredura."
+								>
+									<div className="flex items-center gap-2">
+										<Input
+											inputSize="sm"
+											type="number"
+											className="w-24"
+											min={0}
+											step={100}
+											value={draft.rescanDelayMs}
+											onChange={(e) => patch({ rescanDelayMs: Math.max(Number(e.target.value), 0) })}
+										/>
+										<Typography variant="caption" className="text-muted-foreground">
+											ms
+										</Typography>
+									</div>
+								</SettingsRow>
+
+								<SettingsRow
+									label="Sobreposição máxima"
+									description="Acima disso, duas deteções contam como o mesmo corpo. Baixe se corpos vizinhos estiverem sendo ignorados; suba se o mesmo corpo levar duas pokébolas."
+								>
+									<Input
+										inputSize="sm"
+										type="number"
+										className="w-20"
+										min={0.1}
+										max={0.9}
+										step={0.05}
+										value={draft.maxOverlap}
+										onChange={(e) => patch({ maxOverlap: Math.min(Math.max(Number(e.target.value), 0.1), 0.9) })}
+									/>
+								</SettingsRow>
+
+								<SettingsRow
 									label="Cooldown por alvo"
 									description="Evita gastar outra pokébola no mesmo corpo. Vale por coordenada de tela — andar entre disparos invalida a memória. 0 desliga."
 								>
@@ -264,10 +320,14 @@ export const CaptureEditorSheet = ({ profile, mode, open, onOpenChange }: Captur
 								</SettingsRow>
 
 								{draft.requireGameFocus && (
-									<SettingsRow label="Título da janela" description="Trecho do título, ex: PokeXGames.">
+									<SettingsRow
+										label="Título da janela"
+										description="Vazio usa o título definido em Configurações. Preencha só para sobrescrever neste perfil."
+									>
 										<Input
 											inputSize="sm"
 											className="w-52"
+											placeholder="usar o global"
 											value={draft.gameWindowTitle ?? ""}
 											onChange={(e) => patch({ gameWindowTitle: e.target.value })}
 										/>

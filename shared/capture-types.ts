@@ -38,10 +38,20 @@ export type CaptureProfile = {
 	delayBeforeKeyMs: number;
 	delayBetweenTargetsMs: number;
 
+	/**
+	 * Quantas varreduras por acionamento. Corpo empilhado fica encoberto pelo de cima e não
+	 * aparece na primeira passada — só depois que o primeiro é capturado e some.
+	 */
+	rescanPasses: number;
+	/** Espera entre passadas: tempo do corpo capturado sumir da tela. */
+	rescanDelayMs: number;
+
 	/** Memória de alvos já disparados, em ms. 0 desliga. */
 	targetCooldownMs: number;
-	/** Raio da memória de cooldown. Sem valor, usa metade do tamanho do template. */
+	/** Raio da memória de cooldown. Sem valor, usa 40% do menor lado do template. */
 	cooldownRadiusPx?: number;
+	/** Sobreposição (IoU) a partir da qual duas deteções são consideradas o mesmo alvo. */
+	maxOverlap: number;
 
 	parking: CaptureParking;
 	parkingPoint?: { x: number; y: number };
@@ -69,6 +79,8 @@ export type CaptureRunSummary = {
 	found: number;
 	fired: number;
 	skippedByCooldown: number;
+	/** Quantas varreduras a rodada precisou (só chega em `rescanPasses` se seguir achando alvo). */
+	passes: number;
 	/** Preenchido quando a rodada não chegou a disparar (foco, sem template, abortada, erro). */
 	reason?: "no-focus" | "no-templates" | "aborted" | "error";
 	/** Mensagem do erro quando `reason === "error"`. */
@@ -107,7 +119,10 @@ export const defaultCaptureProfile = (id: string): CaptureProfile => ({
 	maxTargets: 5,
 	delayBeforeKeyMs: 40,
 	delayBetweenTargetsMs: 120,
+	rescanPasses: 3,
+	rescanDelayMs: 700,
 	targetCooldownMs: 5000,
+	maxOverlap: 0.4,
 	parking: "origem",
 	requireGameFocus: true,
 	mode: "once",

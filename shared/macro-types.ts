@@ -32,6 +32,8 @@ export type Macro = {
 	repeat: Repeat;
 	mouseMode: MouseMode;
 	active: boolean;
+	/** Atalho global só dispara com a janela do jogo em foco. Clique manual sempre executa. */
+	requireGameFocus?: boolean;
 };
 
 export type DockSide = "left" | "right";
@@ -42,11 +44,15 @@ export type Settings = {
 	panicKey: string;
 	dockEnabled: boolean;
 	dockPosition: DockPosition;
+	/** Trecho do título da janela do jogo, usado pelas travas de foco de macros e capturas. */
+	gameWindowTitle?: string;
 };
 
 export type PlayState = {
 	macroId: string;
-	status: "recording" | "playing" | "stopped";
+	status: "recording" | "playing" | "stopped" | "blocked";
+	/** Janela que estava em foco quando o disparo foi barrado (`status: "blocked"`). */
+	activeWindowTitle?: string;
 };
 
 export type RecordState = {

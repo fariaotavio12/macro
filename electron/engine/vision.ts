@@ -144,21 +144,30 @@ function collectCandidates(result: { data32F: Float32Array; cols: number }, tole
 	return candidates;
 }
 
+type Box = Candidate & { width: number; height: number };
+
+/** Interseção sobre união entre duas caixas. */
+function overlapRatio(a: Box, b: Box): number {
+	const interWidth = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+	const interHeight = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+	if (interWidth <= 0 || interHeight <= 0) return 0;
+	const intersection = interWidth * interHeight;
+	return intersection / (a.width * a.height + b.width * b.height - intersection);
+}
+
 /**
- * Supressão de vizinhos: um único corpo na tela gera dezenas de pontos acima da tolerância.
- * Mantém o de maior score e descarta todo mundo que cai dentro de meia caixa dele.
+ * Supressão de vizinhos por sobreposição de área: um único corpo gera dezenas de pontos
+ * acima da tolerância, todos praticamente na mesma caixa (IoU alto). Alvos em tiles
+ * vizinhos encostam mas se sobrepõem pouco, e precisam sobreviver — medir por distância
+ * entre centros descartava o corpo de baixo sempre que o recorte era mais alto que o tile.
  */
-function suppressNeighbors<T extends Candidate & { width: number; height: number }>(candidates: T[], max: number): T[] {
+function suppressNeighbors<T extends Box>(candidates: T[], max: number, maxOverlap: number): T[] {
 	const sorted = [...candidates].sort((a, b) => b.score - a.score);
 	const kept: T[] = [];
 	for (const candidate of sorted) {
 		if (kept.length >= max) break;
-		const overlaps = kept.some((accepted) => {
-			const minDx = Math.max(Math.min(accepted.width, candidate.width) / 2, 1);
-			const minDy = Math.max(Math.min(accepted.height, candidate.height) / 2, 1);
-			return Math.abs(accepted.x - candidate.x) < minDx && Math.abs(accepted.y - candidate.y) < minDy;
-		});
-		if (!overlaps) kept.push(candidate);
+		if (kept.some((accepted) => overlapRatio(accepted, candidate) > maxOverlap)) continue;
+		kept.push(candidate);
 	}
 	return kept;
 }
@@ -176,6 +185,8 @@ export type FindAllOptions = {
 	region?: Region;
 	excludeRegions?: Region[];
 	maxTargets?: number;
+	/** IoU a partir do qual duas deteções contam como o mesmo alvo. */
+	maxOverlap?: number;
 };
 
 /**
@@ -183,7 +194,7 @@ export type FindAllOptions = {
  * Nunca lança — templates ausentes ou maiores que a área varrida são ignorados.
  */
 export async function findAllImages(templates: TemplateSpec[], options: FindAllOptions = {}): Promise<CaptureTarget[]> {
-	const { region, excludeRegions = [], maxTargets = 20 } = options;
+	const { region, excludeRegions = [], maxTargets = 20, maxOverlap = 0.4 } = options;
 	if (templates.length === 0) return [];
 
 	const cv = await getCv();
@@ -208,7 +219,7 @@ export async function findAllImages(templates: TemplateSpec[], options: FindAllO
 					width: templateMat.width,
 					height: templateMat.height,
 				}));
-				for (const kept of suppressNeighbors(candidates, maxTargets)) {
+				for (const kept of suppressNeighbors(candidates, maxTargets, maxOverlap)) {
 					targets.push({
 						templateId: template.id,
 						x: offsetX + kept.x,
@@ -228,7 +239,7 @@ export async function findAllImages(templates: TemplateSpec[], options: FindAllO
 
 	// Dois templates parecidos podem casar com o mesmo corpo — sem esta passada final,
 	// o mesmo alvo levaria duas pokébolas.
-	const deduped = suppressNeighbors(targets, maxTargets);
+	const deduped = suppressNeighbors(targets, maxTargets, maxOverlap);
 	return deduped.filter((target) => !excludeRegions.some((excluded) => intersects(target, excluded)));
 }
 

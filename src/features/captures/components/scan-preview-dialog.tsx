@@ -79,6 +79,12 @@ export const ScanPreviewDialog = ({ profile, open, onOpenChange }: ScanPreviewDi
 						<div className="flex flex-wrap items-center gap-2">
 							<Badge variant="outline">{preview.targets.length} alvo(s)</Badge>
 							<Badge variant="outline">{preview.scanMs} ms de varredura</Badge>
+							{profile.rescanPasses > 1 && (
+								<Typography variant="caption" className="text-muted-foreground">
+									O teste faz uma varredura só. Em jogo, o perfil repete até {profile.rescanPasses}x para pegar corpo
+									empilhado.
+								</Typography>
+							)}
 							{!profile.scanRegion && (
 								<Typography variant="caption" className="text-muted-foreground">
 									Sem área definida — a varredura cobre a tela toda e pode achar sprites da própria interface do jogo.

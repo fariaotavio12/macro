@@ -8,20 +8,25 @@ import { usePlayState } from "./use-play-state";
 export const usePlayStateNotifications = () => {
 	const { data: macros } = useMacros();
 	const playStates = usePlayState();
-	const previous = useRef<Record<string, PlayState["status"]>>({});
+	// Comparação por referência: cada evento do main é um objeto novo, então dois bloqueios
+	// seguidos notificam duas vezes em vez de virarem um só.
+	const previous = useRef<Record<string, PlayState>>({});
 
 	useEffect(() => {
-		for (const [macroId, status] of Object.entries(playStates)) {
-			const prevStatus = previous.current[macroId];
-			if (prevStatus === status) continue;
+		for (const [macroId, state] of Object.entries(playStates)) {
+			const previousState = previous.current[macroId];
+			if (previousState === state) continue;
+			previous.current[macroId] = state;
 
 			const name = macros?.find((m) => m.id === macroId)?.name ?? "Macro";
-			if (status === "playing") {
+			if (state.status === "playing") {
 				notify.info(`Executando "${name}"`);
-			} else if (status === "stopped" && prevStatus === "playing") {
+			} else if (state.status === "blocked") {
+				const seen = state.activeWindowTitle ? ` Janela ativa: "${state.activeWindowTitle}".` : "";
+				notify.warning(`"${name}" não disparou: o jogo não estava em foco.${seen}`);
+			} else if (state.status === "stopped" && previousState?.status === "playing") {
 				notify.success(`"${name}" finalizada`);
 			}
 		}
-		previous.current = playStates;
 	}, [playStates, macros]);
 };

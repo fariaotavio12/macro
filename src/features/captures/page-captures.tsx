@@ -45,7 +45,8 @@ const lastRunLabel = (summary: CaptureRunSummary) => {
 	if (summary.reason === "no-focus") return "Jogo fora de foco";
 	if (summary.reason === "no-templates") return "Sem pokémon ativo";
 	if (summary.fired === 0) return `Nenhum alvo · ${summary.scanMs} ms`;
-	return `${summary.fired} pokébola(s) · ${summary.scanMs} ms`;
+	const passes = summary.passes > 1 ? ` em ${summary.passes} passadas` : "";
+	return `${summary.fired} pokébola(s)${passes} · ${summary.scanMs} ms`;
 };
 
 export const PageCaptures = () => {
