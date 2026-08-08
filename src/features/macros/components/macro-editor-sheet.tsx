@@ -3,6 +3,7 @@ import {
 	Button,
 	Card,
 	CardContent,
+	HotkeyCapture,
 	Input,
 	notify,
 	Select,
@@ -10,6 +11,7 @@ import {
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
+	SettingsRow,
 	Switch,
 	Tabs,
 	TabsContent,
@@ -25,8 +27,6 @@ import { Circle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSaveMacro } from "../api";
 import { AddStepMenu } from "./add-step-menu";
-import { HotkeyCapture } from "./hotkey-capture";
-import { SettingsRow } from "./settings-row";
 import { StepList } from "./step-list";
 
 const withFreshIds = (steps: Step[]): Step[] => steps.map((step) => ({ ...step, id: crypto.randomUUID() }));

@@ -1,4 +1,15 @@
-import { Button, Card, CardContent, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components";
+import {
+	Button,
+	Card,
+	CardContent,
+	HotkeyCapture,
+	Input,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components";
 import { cn } from "@/app/utils/cn";
 import type { MouseButton, Step } from "@shared/macro-types";
 import {
@@ -17,9 +28,8 @@ import {
 	Type,
 } from "lucide-react";
 import { useState } from "react";
-import { HotkeyCapture } from "./hotkey-capture";
-import { ImagePickerField } from "./image-picker-field";
-import { ScreenshotPicker } from "./screenshot-picker";
+import { ImagePickerField } from "@/components/image-picker-field";
+import { ScreenshotPicker } from "@/components/screenshot-picker";
 
 const STEP_META: Record<Step["type"], { icon: typeof MousePointer2; label: string }> = {
 	moveMouse: { icon: MousePointer2, label: "Mover mouse" },

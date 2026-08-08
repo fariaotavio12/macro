@@ -1,14 +1,23 @@
 import { ipcMain } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
 import type { Macro, Region, Settings } from "../shared/macro-types";
+import type { CaptureProfile, CaptureScanPreview } from "../shared/capture-types";
 import * as storage from "./engine/storage";
+import * as captureStorage from "./engine/capture-storage";
 import { startPlaying, stopPlaying } from "./engine/play-manager";
 import { isPaused, pauseRecording, resumeRecording, startRecording, stopRecording } from "./engine/recorder";
-import { assertNoHotkeyConflict, assertPanicKeyNoConflict, syncHotkeysFromStorage } from "./engine/hotkeys";
-import { captureScreen, saveScreenshotCrop } from "./engine/screenshot";
+import {
+	assertNoCaptureHotkeyConflict,
+	assertNoHotkeyConflict,
+	assertPanicKeyNoConflict,
+	syncHotkeysFromStorage,
+} from "./engine/hotkeys";
+import { resetCaptureCooldown, stopCapture, triggerCapture } from "./engine/capture-runner";
+import { findAllImages } from "./engine/vision";
+import { captureScreen, captureScreenRaw, saveScreenshotCrop, withAppWindowHidden } from "./engine/screenshot";
 import { broadcast, minimizeMainWindow, showMainWindow } from "./window-ref";
 import { hideRecordingIndicator, showRecordingIndicator } from "./recording-indicator";
-import { hideDockWindow, refreshDockFromSettings, toggleDockExpanded } from "./dock-window";
+import { hideDockWindow, isDockVisible, refreshDockFromSettings, showDockWindow, toggleDockExpanded } from "./dock-window";
 import type { RecordState } from "../shared/macro-types";
 
 function broadcastRecordState(recording: boolean) {
@@ -17,6 +26,10 @@ function broadcastRecordState(recording: boolean) {
 
 function broadcastMacrosChanged() {
 	broadcast(IpcChannel.macroChanged, storage.listMacros());
+}
+
+function broadcastProfilesChanged() {
+	broadcast(IpcChannel.captureChanged, captureStorage.listProfiles());
 }
 
 export function registerIpcHandlers() {
@@ -78,6 +91,53 @@ export function registerIpcHandlers() {
 
 	ipcMain.handle(IpcChannel.screenshotCapture, () => captureScreen());
 	ipcMain.handle(IpcChannel.screenshotCropSave, (_event, region: Region) => saveScreenshotCrop(region));
+
+	ipcMain.handle(IpcChannel.captureList, () => captureStorage.listProfiles());
+	ipcMain.handle(IpcChannel.captureGet, (_event, id: string) => captureStorage.getProfile(id));
+	ipcMain.handle(IpcChannel.captureSave, (_event, profile: CaptureProfile) => {
+		assertNoCaptureHotkeyConflict(profile);
+		const saved = captureStorage.saveProfile(profile);
+		// Editar templates ou região invalida a memória de alvos já disparados.
+		resetCaptureCooldown(profile.id);
+		syncHotkeysFromStorage();
+		broadcastProfilesChanged();
+		return saved;
+	});
+	ipcMain.handle(IpcChannel.captureDelete, (_event, id: string) => {
+		stopCapture(id);
+		captureStorage.deleteProfile(id);
+		resetCaptureCooldown(id);
+		syncHotkeysFromStorage();
+		broadcastProfilesChanged();
+	});
+	ipcMain.handle(IpcChannel.captureRun, (_event, id: string) => {
+		const profile = captureStorage.getProfile(id);
+		if (!profile) return;
+		triggerCapture(profile);
+	});
+	ipcMain.handle(IpcChannel.captureStop, (_event, id: string) => stopCapture(id));
+	ipcMain.handle(IpcChannel.captureScanPreview, async (_event, id: string): Promise<CaptureScanPreview | null> => {
+		const profile = captureStorage.getProfile(id);
+		if (!profile) return null;
+		// Grab e varredura acontecem os dois com a janela escondida: com o app na frente,
+		// o preview analisaria a própria interface em vez do jogo. O dock também sai da
+		// frente — ele fica sempre por cima e cobriria parte do cenário.
+		const dockWasVisible = isDockVisible();
+		if (dockWasVisible) hideDockWindow();
+		try {
+			return await withAppWindowHidden(async () => {
+				const capture = await captureScreenRaw();
+				const startedAt = Date.now();
+				const targets = await findAllImages(
+					profile.templates.filter((template) => template.enabled && template.imagePath),
+					{ region: profile.scanRegion, excludeRegions: profile.excludeRegions, maxTargets: profile.maxTargets },
+				);
+				return { ...capture, scanRegion: profile.scanRegion, targets, scanMs: Date.now() - startedAt };
+			});
+		} finally {
+			if (dockWasVisible) showDockWindow();
+		}
+	});
 
 	ipcMain.handle(IpcChannel.dockToggle, (_event, expanded: boolean) => toggleDockExpanded(expanded));
 	ipcMain.handle(IpcChannel.windowRestoreMain, () => {

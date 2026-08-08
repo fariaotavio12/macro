@@ -1,7 +1,8 @@
-import { Button, notify } from "@/components";
+import { Button } from "@/components/button";
+import { ScreenshotPicker } from "@/components/screenshot-picker";
+import { notify } from "@/components/toast/notify";
 import { ImageIcon, ScanSearch } from "lucide-react";
 import { useState } from "react";
-import { ScreenshotPicker } from "./screenshot-picker";
 
 type ImagePickerFieldProps = {
 	imagePath: string;

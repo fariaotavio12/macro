@@ -1,4 +1,4 @@
-import { notify } from "@/components";
+import { notify } from "@/components/toast/notify";
 import { Typography } from "@/components/typography";
 import type { Region } from "@shared/macro-types";
 import { Dialog as DialogPrimitive } from "radix-ui";

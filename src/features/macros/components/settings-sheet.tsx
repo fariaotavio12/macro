@@ -2,20 +2,20 @@ import {
 	AppSheet,
 	Card,
 	CardContent,
+	HotkeyCapture,
 	notify,
 	Select,
 	SelectContent,
 	SelectItem,
 	SelectTrigger,
 	SelectValue,
+	SettingsRow,
 	Switch,
 } from "@/components";
 import { Typography } from "@/components/typography";
 import type { DockPosition } from "@shared/macro-types";
 import { useEffect, useRef, useState } from "react";
 import { useSaveSettings, useSettings } from "../api";
-import { HotkeyCapture } from "./hotkey-capture";
-import { SettingsRow } from "./settings-row";
 
 type SettingsSheetProps = {
 	open: boolean;

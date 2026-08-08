@@ -54,6 +54,42 @@ function buildHtml(side: "left" | "right") {
 		align-items: center;
 		justify-content: space-between;
 	}
+	.panel-tabs {
+		display: flex;
+		gap: 4px;
+		padding: 8px 10px 0;
+	}
+	.panel-tab {
+		flex: 1;
+		border: none;
+		background: transparent;
+		color: #a1a1aa;
+		font-size: 12px;
+		font-weight: 600;
+		padding: 6px 8px;
+		border-radius: 8px;
+		cursor: pointer;
+	}
+	.panel-tab:hover { color: #fff; }
+	.panel-tab.active { background: rgba(255,255,255,.1); color: #fff; }
+	.row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+	.mini-btn {
+		border: none;
+		background: rgba(255,255,255,.08);
+		color: #fff;
+		font-size: 11px;
+		font-weight: 600;
+		padding: 4px 8px;
+		border-radius: 6px;
+		cursor: pointer;
+	}
+	.mini-btn:hover { background: rgba(255,255,255,.18); }
+	.mini-btn:disabled { opacity: .5; cursor: default; }
+	.row-result {
+		font-size: 11px;
+		color: #a1a1aa;
+		padding: 0 8px 6px;
+	}
 	.close-btn {
 		border: none;
 		background: transparent;
@@ -149,12 +185,16 @@ function buildHtml(side: "left" | "right") {
 		</div>
 		<div class="panel">
 			<div class="panel-header">
-				<span>Macros</span>
+				<span>Macro App</span>
 				<button class="close-btn" id="closeBtn" title="Recolher">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18 6L6 18M6 6l12 12"/>
 					</svg>
 				</button>
+			</div>
+			<div class="panel-tabs">
+				<button class="panel-tab active" data-tab="macros">Macros</button>
+				<button class="panel-tab" data-tab="capturas">Capturas</button>
 			</div>
 			<div class="panel-list" id="list"></div>
 			<div class="panel-footer">
@@ -164,7 +204,11 @@ function buildHtml(side: "left" | "right") {
 	</div>
 	<script>
 		let expanded = false;
+		let activeTab = "macros";
 		let macros = [];
+		let profiles = [];
+		// Resultado do último "Testar" por perfil — some quando a lista é recriada.
+		const scanResults = {};
 
 		const arrow = document.getElementById("arrow");
 		const list = document.getElementById("list");
@@ -175,7 +219,11 @@ function buildHtml(side: "left" | "right") {
 			window.api.dock.toggle(expanded);
 		}
 
-		function render() {
+		function escapeHtml(value) {
+			return String(value).replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]);
+		}
+
+		function renderMacros() {
 			if (macros.length === 0) {
 				list.innerHTML = '<div class="empty">Nenhuma macro cadastrada</div>';
 				return;
@@ -184,8 +232,8 @@ function buildHtml(side: "left" | "right") {
 				.map(
 					(m) => \`
 					<div class="row">
-						<span class="row-name" title="\${m.name}">\${m.name}</span>
-						\${m.hotkey ? \`<span class="row-hotkey">\${m.hotkey}</span>\` : ""}
+						<span class="row-name" title="\${escapeHtml(m.name)}">\${escapeHtml(m.name)}</span>
+						\${m.hotkey ? \`<span class="row-hotkey">\${escapeHtml(m.hotkey)}</span>\` : ""}
 						<button class="switch \${m.active ? "on" : ""}" data-id="\${m.id}"></button>
 					</div>
 				\`,
@@ -201,14 +249,89 @@ function buildHtml(side: "left" | "right") {
 			});
 		}
 
+		function renderCaptures() {
+			if (profiles.length === 0) {
+				list.innerHTML = '<div class="empty">Nenhum perfil de captura</div>';
+				return;
+			}
+			list.innerHTML = profiles
+				.map(
+					(p) => \`
+					<div>
+						<div class="row">
+							<span class="row-name" title="\${escapeHtml(p.name)}">\${escapeHtml(p.name)}</span>
+							\${p.hotkey ? \`<span class="row-hotkey">\${escapeHtml(p.hotkey)}</span>\` : ""}
+							<div class="row-actions">
+								<button class="mini-btn" data-run="\${p.id}" title="Executar uma varredura agora">▶</button>
+								<button class="mini-btn" data-test="\${p.id}" title="Só detecta, não joga pokébola">Testar</button>
+								<button class="switch \${p.active ? "on" : ""}" data-toggle="\${p.id}"></button>
+							</div>
+						</div>
+						\${scanResults[p.id] ? \`<div class="row-result">\${escapeHtml(scanResults[p.id])}</div>\` : ""}
+					</div>
+				\`,
+				)
+				.join("");
+
+			list.querySelectorAll("[data-toggle]").forEach((el) => {
+				el.addEventListener("click", async () => {
+					const id = el.getAttribute("data-toggle");
+					const profile = profiles.find((p) => p.id === id);
+					if (!profile) return;
+					await window.api.capture.save({ ...profile, active: !profile.active });
+				});
+			});
+
+			list.querySelectorAll("[data-run]").forEach((el) => {
+				el.addEventListener("click", () => window.api.capture.run(el.getAttribute("data-run")));
+			});
+
+			list.querySelectorAll("[data-test]").forEach((el) => {
+				el.addEventListener("click", async () => {
+					const id = el.getAttribute("data-test");
+					el.disabled = true;
+					el.textContent = "...";
+					try {
+						const preview = await window.api.capture.scanPreview(id);
+						scanResults[id] = preview
+							? \`\${preview.targets.length} alvo(s) · \${preview.scanMs} ms\`
+							: "perfil não encontrado";
+					} catch (error) {
+						scanResults[id] = "falhou: " + (error && error.message ? error.message : error);
+					}
+					render();
+				});
+			});
+		}
+
+		function render() {
+			document.querySelectorAll(".panel-tab").forEach((el) => {
+				el.classList.toggle("active", el.getAttribute("data-tab") === activeTab);
+			});
+			if (activeTab === "macros") renderMacros();
+			else renderCaptures();
+		}
+
 		async function refresh() {
-			macros = await window.api.macro.list();
+			[macros, profiles] = await Promise.all([window.api.macro.list(), window.api.capture.list()]);
 			render();
 		}
 
 		window.api.macro.onChanged((updated) => {
 			macros = updated;
 			render();
+		});
+
+		window.api.capture.onChanged((updated) => {
+			profiles = updated;
+			render();
+		});
+
+		document.querySelectorAll(".panel-tab").forEach((el) => {
+			el.addEventListener("click", () => {
+				activeTab = el.getAttribute("data-tab");
+				render();
+			});
 		});
 
 		document.getElementById("tab").addEventListener("click", () => setExpanded(!expanded));
@@ -284,6 +407,10 @@ export function showDockWindow() {
 	dockWindow.on("closed", () => {
 		dockWindow = null;
 	});
+}
+
+export function isDockVisible() {
+	return !!dockWindow && !dockWindow.isDestroyed() && dockWindow.isVisible();
 }
 
 export function hideDockWindow() {

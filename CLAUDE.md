@@ -17,6 +17,27 @@ npm run preview          # Preview production build locally
 
 No test framework is configured.
 
+`node_modules` não vem versionado: rode `npm install` antes do primeiro `tsc -b` / `npm run build`.
+
+## Motor Electron
+
+O app é Electron: `electron/` (processo main) + `shared/` (tipos e canais IPC) + `src/` (renderer).
+Regra fixa: input global e visão computacional só rodam no main, nunca no renderer.
+
+- `electron/engine/recorder.ts` / `player.ts` — gravação e reprodução de macro.
+- `electron/engine/hotkeys.ts` — listener `uiohook` único: tecla de pânico > macros > perfis de captura.
+  Toda validação de conflito de atalho passa por `findComboOwner` aqui.
+- `electron/engine/vision.ts` — OpenCV. `findImage` (melhor match, usado pelas macros) e
+  `findAllImages` (todos os matches + supressão de vizinhos, usado pela aba Capturas).
+  Templates ficam em cache por `mtime` — recapturar a imagem invalida sozinho.
+- `electron/engine/capture-runner.ts` — varredura da aba Capturas: cooldown por coordenada,
+  parking do cursor, trava de foco de janela, abort pela tecla de pânico.
+- `electron/engine/screenshot.ts` — `captureScreen()` minimiza a janela antes do grab;
+  `captureScreenRaw()` não. O preview de detecção precisa da versão que não minimiza.
+
+Perfis de captura ficam em `userData/capturas/*.json`; macros em `userData/macros/*.json`;
+imagens de referência (das duas features) em `userData/macros/images/`.
+
 ## Architecture
 
 This is a generic React/TypeScript SPA template built with Vite, React Router, Tailwind, Radix UI, TanStack Query and Axios. Keep it domain-neutral and adapt product-specific rules inside feature folders.

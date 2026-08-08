@@ -18,8 +18,8 @@ import { cn } from "@/app/utils/cn";
 import type { Condition, Step } from "@shared/macro-types";
 import { ArrowDown, ArrowUp, ChevronDown, Copy, GitBranch, GripVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { ImagePickerField } from "@/components/image-picker-field";
 import { AddStepMenu } from "./add-step-menu";
-import { ImagePickerField } from "./image-picker-field";
 import { PointPickerButton } from "./step-row";
 import { StepList } from "./step-list";
 

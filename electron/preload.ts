@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
 import type { Macro, PlayState, RecordState, Region, Settings, Step } from "../shared/macro-types";
+import type { CaptureProfile, CaptureRunState, CaptureScanPreview } from "../shared/capture-types";
 import type { CaptureResult, CropSaveResult } from "./engine/screenshot";
 
 const macroBridge = {
@@ -59,6 +60,31 @@ const screenshotBridge = {
 	cropSave: (region: Region): Promise<CropSaveResult> => ipcRenderer.invoke(IpcChannel.screenshotCropSave, region),
 };
 
+const captureBridge = {
+	list: (): Promise<CaptureProfile[]> => ipcRenderer.invoke(IpcChannel.captureList),
+	get: (id: string): Promise<CaptureProfile | null> => ipcRenderer.invoke(IpcChannel.captureGet, id),
+	save: (profile: CaptureProfile): Promise<CaptureProfile> => ipcRenderer.invoke(IpcChannel.captureSave, profile),
+	delete: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureDelete, id),
+	run: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureRun, id),
+	stop: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureStop, id),
+	scanPreview: (id: string): Promise<CaptureScanPreview | null> =>
+		ipcRenderer.invoke(IpcChannel.captureScanPreview, id),
+	onChanged: (listener: (profiles: CaptureProfile[]) => void) => {
+		const handler = (_event: Electron.IpcRendererEvent, profiles: CaptureProfile[]) => listener(profiles);
+		ipcRenderer.on(IpcChannel.captureChanged, handler);
+		return () => {
+			ipcRenderer.removeListener(IpcChannel.captureChanged, handler);
+		};
+	},
+	onState: (listener: (state: CaptureRunState) => void) => {
+		const handler = (_event: Electron.IpcRendererEvent, state: CaptureRunState) => listener(state);
+		ipcRenderer.on(IpcChannel.captureState, handler);
+		return () => {
+			ipcRenderer.removeListener(IpcChannel.captureState, handler);
+		};
+	},
+};
+
 const dockBridge = {
 	toggle: (expanded: boolean): Promise<void> => ipcRenderer.invoke(IpcChannel.dockToggle, expanded),
 };
@@ -73,6 +99,7 @@ const api = {
 	record: recordBridge,
 	play: playBridge,
 	screenshot: screenshotBridge,
+	capture: captureBridge,
 	dock: dockBridge,
 	window: windowBridge,
 };

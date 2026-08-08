@@ -1,6 +1,7 @@
-import { Button, Kbd, KbdGroup } from "@/components";
+import { Button } from "@/components/button";
+import { Kbd, KbdGroup } from "@/components/kbd";
 import { useEffect, useRef, useState } from "react";
-import { comboFromDomEvent, modifierFromDomEvent } from "../lib/dom-key-map";
+import { comboFromDomEvent, modifierFromDomEvent } from "./dom-key-map";
 
 type HotkeyCaptureProps = {
 	value?: string;

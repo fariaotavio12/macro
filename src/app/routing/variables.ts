@@ -1,6 +1,7 @@
 export const Rotas = {
 	macros: {
 		library: "/",
+		captures: "/capturas",
 	},
 	desprotegidas: {
 		auth: {
