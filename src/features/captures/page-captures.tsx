@@ -27,7 +27,7 @@ import { Copy, MoreVertical, Pencil, Play, Plus, Square, Trash2 } from "lucide-r
 import { useCallback, useMemo, useState } from "react";
 import { useCaptureProfiles, useDeleteCaptureProfile, useSaveCaptureProfile } from "./api";
 import { CaptureEditorSheet } from "./components/capture-editor-sheet";
-import { useCaptureState } from "./hooks/use-capture-state";
+import { useCaptureProfileStates } from "./hooks/use-capture-state";
 
 const blankProfile = (): CaptureProfile => defaultCaptureProfile(crypto.randomUUID());
 
@@ -53,7 +53,7 @@ export const PageCaptures = () => {
 	const { data: profiles, isPending, isError, refetch } = useCaptureProfiles();
 	const saveProfile = useSaveCaptureProfile();
 	const deleteProfile = useDeleteCaptureProfile();
-	const captureStates = useCaptureState();
+	const captureStates = useCaptureProfileStates();
 	const [profileToDelete, setProfileToDelete] = useState<CaptureProfile | null>(null);
 	const [editor, setEditor] = useState<{ profile: CaptureProfile; mode: "create" | "edit" } | null>(null);
 

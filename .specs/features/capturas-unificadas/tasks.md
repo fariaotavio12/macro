@@ -269,14 +269,19 @@ aguardar para não travar a navegação. Ainda não há consumidor — a página
 
 **Done when:**
 
-- [ ] O hook retorna um estado singleton com default `idle`.
-- [ ] Eventos scanning, acting e idle substituem o estado anterior.
-- [ ] Nenhum `profileId` permanece no hook.
-- [ ] `npm run verify` passa.
+- [x] O hook retorna um estado singleton com default `idle`.
+- [x] Eventos scanning, acting e idle substituem o estado anterior.
+- [x] Nenhum `profileId` permanece no hook.
+- [x] `npm run verify` passa.
 
 **Tests:** none — estado coberto pelo UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): track singleton run state`
+**Status:** ✅ Complete — `useCaptureState` devolve um `CaptureRunState` único e o `onState` do
+preload deixou de usar `CaptureProfileRunState`. Como o main já emitia estado sem identidade
+desde T4, o mapa por perfil sobrevive apenas como shim `@deprecated` de chave fixa
+(`useCaptureProfileStates`) para a página e as notificações compilarem até T10/T13; o
+comportamento intermediário é o mesmo de antes e T14 apaga o shim.
 
 #### T10: Atualizar as notificações globais de Capturas
 

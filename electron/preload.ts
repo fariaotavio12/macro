@@ -1,12 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
 import type { Macro, PlayState, RecordState, Region, Settings, Step } from "../shared/macro-types";
-import type {
-	CaptureConfig,
-	CaptureProfile,
-	CaptureProfileRunState,
-	CaptureScanPreview,
-} from "../shared/capture-types";
+import type { CaptureConfig, CaptureProfile, CaptureRunState, CaptureScanPreview } from "../shared/capture-types";
 import type { CaptureResult, CropSaveResult } from "./engine/screenshot";
 
 const macroBridge = {
@@ -81,8 +76,8 @@ const captureBridge = {
 			ipcRenderer.removeListener(IpcChannel.captureChanged, handler);
 		};
 	},
-	onState: (listener: (state: CaptureProfileRunState) => void) => {
-		const handler = (_event: Electron.IpcRendererEvent, state: CaptureProfileRunState) => listener(state);
+	onState: (listener: (state: CaptureRunState) => void) => {
+		const handler = (_event: Electron.IpcRendererEvent, state: CaptureRunState) => listener(state);
 		ipcRenderer.on(IpcChannel.captureState, handler);
 		return () => {
 			ipcRenderer.removeListener(IpcChannel.captureState, handler);

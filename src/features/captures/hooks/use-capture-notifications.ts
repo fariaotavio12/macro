@@ -2,7 +2,7 @@ import { notify } from "@/components/toast/notify";
 import type { CaptureRunSummary } from "@shared/capture-types";
 import { useEffect, useRef } from "react";
 import { useCaptureProfiles } from "../api";
-import { useCaptureState } from "./use-capture-state";
+import { useCaptureProfileStates } from "./use-capture-state";
 
 /**
  * Avisa quando uma rodada disparada por atalho não fez o que devia. Sem isso, apertar a
@@ -11,7 +11,7 @@ import { useCaptureState } from "./use-capture-state";
  */
 export const useCaptureNotifications = () => {
 	const { data: profiles } = useCaptureProfiles();
-	const captureStates = useCaptureState();
+	const captureStates = useCaptureProfileStates();
 	const notified = useRef<Record<string, CaptureRunSummary>>({});
 
 	useEffect(() => {
