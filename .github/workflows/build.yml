@@ -3,7 +3,6 @@ name: Build & Release
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -25,18 +24,71 @@ jobs:
 
   release:
     name: Package and publish Windows installer
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
     runs-on: windows-latest
+    concurrency:
+      group: release-main
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
           cache: "npm"
       - run: npm ci
-      - run: npm run release
+
+      - name: Determine next release version
+        id: version
+        shell: pwsh
+        run: |
+          $versions = git tag --list "v*" | ForEach-Object {
+            if ($_ -match '^v(\d+)\.(\d+)\.(\d+)$') {
+              [PSCustomObject]@{
+                Major = [int]$Matches[1]
+                Minor = [int]$Matches[2]
+                Patch = [int]$Matches[3]
+              }
+            }
+          }
+
+          $latest = $versions |
+            Sort-Object Major, Minor, Patch -Descending |
+            Select-Object -First 1
+
+          if ($null -eq $latest) {
+            $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          } else {
+            $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)"
+          }
+
+          npm version $version --no-git-tag-version
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Package Windows installer
+        run: npm run electron:build
+
+      - name: Publish GitHub release
+        shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $assets = Get-ChildItem release -File | Where-Object {
+            $_.Extension -in '.exe', '.yml', '.blockmap'
+          } | Select-Object -ExpandProperty FullName
+
+          if (-not $assets) {
+            throw 'No release assets were generated.'
+          }
+
+          gh release create $env:RELEASE_TAG $assets `
+            --target $env:GITHUB_SHA `
+            --title $env:RELEASE_VERSION `
+            --generate-notes
