@@ -14,7 +14,7 @@ import {
 } from "./engine/hotkeys";
 import { resetCaptureCooldown, stopCapture, triggerCapture } from "./engine/capture-runner";
 import { findAllImages } from "./engine/vision";
-import { captureScreen, captureScreenRaw, saveScreenshotCrop, withAppWindowHidden } from "./engine/screenshot";
+import { captureScreen, captureScreenPreview, saveScreenshotCrop, screenSize, withAppWindowHidden } from "./engine/screenshot";
 import { broadcast, minimizeMainWindow, showMainWindow } from "./window-ref";
 import { hideRecordingIndicator, showRecordingIndicator } from "./recording-indicator";
 import { hideDockWindow, isDockVisible, refreshDockFromSettings, showDockWindow, toggleDockExpanded } from "./dock-window";
@@ -98,15 +98,15 @@ export function registerIpcHandlers() {
 		assertNoCaptureHotkeyConflict(profile);
 		const saved = captureStorage.saveProfile(profile);
 		// Editar templates ou região invalida a memória de alvos já disparados.
-		resetCaptureCooldown(profile.id);
+		resetCaptureCooldown();
 		syncHotkeysFromStorage();
 		broadcastProfilesChanged();
 		return saved;
 	});
 	ipcMain.handle(IpcChannel.captureDelete, (_event, id: string) => {
-		stopCapture(id);
+		stopCapture();
 		captureStorage.deleteProfile(id);
-		resetCaptureCooldown(id);
+		resetCaptureCooldown();
 		syncHotkeysFromStorage();
 		broadcastProfilesChanged();
 	});
@@ -116,29 +116,38 @@ export function registerIpcHandlers() {
 		// Clique no app ou no dock: sempre executa, a trava de foco vale só para o atalho.
 		triggerCapture(profile, "manual");
 	});
-	ipcMain.handle(IpcChannel.captureStop, (_event, id: string) => stopCapture(id));
-	ipcMain.handle(IpcChannel.captureScanPreview, async (_event, id: string): Promise<CaptureScanPreview | null> => {
-		const profile = captureStorage.getProfile(id);
-		if (!profile) return null;
-		// Grab e varredura acontecem os dois com a janela escondida: com o app na frente,
-		// o preview analisaria a própria interface em vez do jogo. O dock também sai da
-		// frente — ele fica sempre por cima e cobriria parte do cenário.
-		const dockWasVisible = isDockVisible();
-		if (dockWasVisible) hideDockWindow();
-		try {
-			return await withAppWindowHidden(async () => {
-				const capture = await captureScreenRaw();
-				const startedAt = Date.now();
-				const targets = await findAllImages(
-					profile.templates.filter((template) => template.enabled && template.imagePath),
-					{ region: profile.scanRegion, excludeRegions: profile.excludeRegions, maxTargets: profile.maxTargets },
-				);
-				return { ...capture, scanRegion: profile.scanRegion, targets, scanMs: Date.now() - startedAt };
-			});
-		} finally {
-			if (dockWasVisible) showDockWindow();
-		}
-	});
+	ipcMain.handle(IpcChannel.captureStop, () => stopCapture());
+	ipcMain.handle(
+		IpcChannel.captureScanPreview,
+		async (_event, id: string, includeImage: boolean): Promise<CaptureScanPreview | null> => {
+			const profile = captureStorage.getProfile(id);
+			if (!profile) return null;
+			// Grab e varredura acontecem os dois com a janela escondida: com o app na frente,
+			// o preview analisaria a própria interface em vez do jogo. O dock também sai da
+			// frente — ele fica sempre por cima e cobriria parte do cenário.
+			const dockWasVisible = isDockVisible();
+			if (dockWasVisible) hideDockWindow();
+			try {
+				return await withAppWindowHidden(async () => {
+					// Chamada do dock não usa a imagem: sem ela, nem gera o base64.
+					const capture = includeImage ? await captureScreenPreview() : await screenSize();
+					const startedAt = Date.now();
+					const targets = await findAllImages(
+						profile.templates.filter((template) => template.enabled && template.imagePath),
+						{
+							region: profile.scanRegion,
+							excludeRegions: profile.excludeRegions,
+							maxTargets: profile.maxTargets,
+							maxOverlap: profile.maxOverlap,
+						},
+					);
+					return { ...capture, scanRegion: profile.scanRegion, targets, scanMs: Date.now() - startedAt };
+				});
+			} finally {
+				if (dockWasVisible) showDockWindow();
+			}
+		},
+	);
 
 	ipcMain.handle(IpcChannel.dockToggle, (_event, expanded: boolean) => toggleDockExpanded(expanded));
 	ipcMain.handle(IpcChannel.windowRestoreMain, () => {

@@ -146,16 +146,18 @@ T14 não possui dependência interna na fase.
 
 **Done when:**
 
-- [ ] Existe no máximo uma captura em execução ou loop.
-- [ ] `run`, `stop` e reset de cooldown não recebem ID.
-- [ ] Apenas uma entrada global de Capturas pode ser registrada.
-- [ ] Pânico e conflitos com macros mantêm a precedência e textos atuais.
-- [ ] O clique manual ignora a trava de foco como hoje.
-- [ ] `npm run verify` passa.
+- [x] Existe no máximo uma captura em execução ou loop.
+- [x] `run`, `stop` e reset de cooldown não recebem ID.
+- [x] Apenas uma entrada global de Capturas pode ser registrada.
+- [x] Pânico e conflitos com macros mantêm a precedência e textos atuais.
+- [x] O clique manual ignora a trava de foco como hoje.
+- [x] `npm run verify` passa.
 
 **Tests:** none — runtime coberto pelo UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): use singleton runtime`
+**Status:** ✅ Complete — a mensagem de conflito de Capturas perdeu o nome do perfil
+(`já está em uso pelas Capturas`); pânico, macros e precedência inalterados.
 
 #### T5: Substituir os contratos IPC por operações globais
 

@@ -1,11 +1,11 @@
 import { uIOhook } from "uiohook-napi";
 import type { Macro, Settings } from "../../shared/macro-types";
-import type { CaptureProfile } from "../../shared/capture-types";
+import type { CaptureConfig } from "../../shared/capture-types";
 import { MODIFIER_KEYS, UIOHOOK_KEYCODE_TO_CANONICAL, type CanonicalKey } from "../../shared/key-map";
 import * as storage from "./storage";
 import * as captureStorage from "./capture-storage";
 import { startPlaying, stopAll } from "./play-manager";
-import { stopAllCaptures, triggerCapture } from "./capture-runner";
+import { stopCapture, triggerCapture } from "./capture-runner";
 import { checkWindowFocus } from "./window-focus";
 import { IpcChannel } from "../../shared/ipc-channels";
 import type { PlayState } from "../../shared/macro-types";
@@ -28,11 +28,12 @@ export function comboKey(keys: CanonicalKey[]): Combo {
 }
 
 let hotkeyMap = new Map<Combo, Macro>();
-let captureMap = new Map<Combo, CaptureProfile>();
+/** Uma única configuração de Capturas concorre pelos atalhos. */
+let captureConfig: CaptureConfig | null = null;
 let panicCombo: Combo = "Escape";
 let listening = false;
 
-// Segurar a tecla gera key-repeat do Windows. Sem debounce, um perfil em modo loop
+// Segurar a tecla gera key-repeat do Windows. Sem debounce, o modo loop
 // ligaria e desligaria dezenas de vezes num único toque.
 const HOTKEY_DEBOUNCE_MS = 300;
 const lastTriggerAt = new Map<Combo, number>();
@@ -64,7 +65,7 @@ function onKeydown(e: KeydownEvent) {
 	// RN1: tecla de pânico tem prioridade máxima sobre qualquer execução.
 	if (combo === panicCombo) {
 		stopAll();
-		stopAllCaptures();
+		stopCapture();
 		return;
 	}
 
@@ -74,9 +75,8 @@ function onKeydown(e: KeydownEvent) {
 		return;
 	}
 
-	const profile = captureMap.get(combo);
-	if (profile?.active && !isDebounced(combo)) {
-		triggerCapture(profile, "hotkey");
+	if (captureConfig?.hotkey === combo && !isDebounced(combo)) {
+		triggerCapture(captureConfig, "hotkey");
 	}
 }
 
@@ -99,24 +99,19 @@ async function playFromHotkey(macro: Macro) {
 	await startPlaying(macro);
 }
 
-export function syncHotkeys(macros: Macro[], profiles: CaptureProfile[], settings: Settings) {
+export function syncHotkeys(macros: Macro[], config: CaptureConfig, settings: Settings) {
 	hotkeyMap = new Map();
 	for (const macro of macros) {
 		if (macro.active && macro.hotkey) {
 			hotkeyMap.set(macro.hotkey, macro);
 		}
 	}
-	captureMap = new Map();
-	for (const profile of profiles) {
-		if (profile.active && profile.hotkey) {
-			captureMap.set(profile.hotkey, profile);
-		}
-	}
+	captureConfig = config.active && config.hotkey ? config : null;
 	panicCombo = settings.panicKey;
 }
 
 export function syncHotkeysFromStorage() {
-	syncHotkeys(storage.listMacros(), captureStorage.listProfiles(), storage.getSettings());
+	syncHotkeys(storage.listMacros(), captureStorage.getConfig(), storage.getSettings());
 }
 
 export function registerHotkeyListener() {
@@ -125,38 +120,40 @@ export function registerHotkeyListener() {
 	listening = true;
 }
 
-type ComboOwner = { kind: "panic" } | { kind: "macro"; name: string } | { kind: "capture"; name: string };
+type ComboOwner = { kind: "panic" } | { kind: "macro"; name: string } | { kind: "capture" };
 
 /** Quem já usa `combo` hoje, ignorando o próprio item que está sendo salvo. */
-function findComboOwner(combo: Combo, ignoreId: string): ComboOwner | null {
+function findComboOwner(combo: Combo, ignore: { macroId?: string; capture?: boolean }): ComboOwner | null {
 	if (combo === storage.getSettings().panicKey) return { kind: "panic" };
 
-	const macro = storage.listMacros().find((m) => m.id !== ignoreId && m.active && m.hotkey === combo);
+	const macro = storage.listMacros().find((m) => m.id !== ignore.macroId && m.active && m.hotkey === combo);
 	if (macro) return { kind: "macro", name: macro.name };
 
-	const profile = captureStorage.listProfiles().find((p) => p.id !== ignoreId && p.active && p.hotkey === combo);
-	if (profile) return { kind: "capture", name: profile.name };
+	if (!ignore.capture) {
+		const config = captureStorage.getConfig();
+		if (config.active && config.hotkey === combo) return { kind: "capture" };
+	}
 
 	return null;
 }
 
 function conflictMessage(combo: Combo, owner: ComboOwner) {
 	if (owner.kind === "panic") return `O atalho "${combo}" é igual à tecla de pânico. Escolha outro atalho.`;
-	const label = owner.kind === "macro" ? "macro" : "captura";
-	return `O atalho "${combo}" já está em uso pela ${label} "${owner.name}".`;
+	if (owner.kind === "capture") return `O atalho "${combo}" já está em uso pelas Capturas.`;
+	return `O atalho "${combo}" já está em uso pela macro "${owner.name}".`;
 }
 
 /** RN2/RN3: valida conflito de atalho antes de persistir. Lança erro com mensagem amigável. */
 export function assertNoHotkeyConflict(macro: Macro) {
 	if (!macro.active || !macro.hotkey) return;
-	const owner = findComboOwner(macro.hotkey, macro.id);
+	const owner = findComboOwner(macro.hotkey, { macroId: macro.id });
 	if (owner) throw new Error(conflictMessage(macro.hotkey, owner));
 }
 
-export function assertNoCaptureHotkeyConflict(profile: CaptureProfile) {
-	if (!profile.active || !profile.hotkey) return;
-	const owner = findComboOwner(profile.hotkey, profile.id);
-	if (owner) throw new Error(conflictMessage(profile.hotkey, owner));
+export function assertNoCaptureHotkeyConflict(config: CaptureConfig) {
+	if (!config.active || !config.hotkey) return;
+	const owner = findComboOwner(config.hotkey, { capture: true });
+	if (owner) throw new Error(conflictMessage(config.hotkey, owner));
 }
 
 export function assertPanicKeyNoConflict(settings: Settings) {
@@ -164,8 +161,8 @@ export function assertPanicKeyNoConflict(settings: Settings) {
 	if (macro) {
 		throw new Error(`A tecla de pânico "${settings.panicKey}" já está em uso pela macro "${macro.name}".`);
 	}
-	const profile = captureStorage.listProfiles().find((p) => p.active && p.hotkey === settings.panicKey);
-	if (profile) {
-		throw new Error(`A tecla de pânico "${settings.panicKey}" já está em uso pela captura "${profile.name}".`);
+	const config = captureStorage.getConfig();
+	if (config.active && config.hotkey === settings.panicKey) {
+		throw new Error(`A tecla de pânico "${settings.panicKey}" já está em uso pelas Capturas.`);
 	}
 }

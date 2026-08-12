@@ -1,7 +1,7 @@
 import { Button, keyboard, mouse, Point, screen } from "@nut-tree-fork/nut-js";
 import { IpcChannel } from "../../shared/ipc-channels";
 import type { CanonicalKey } from "../../shared/key-map";
-import type { CaptureProfile, CaptureRunSummary, CaptureTarget } from "../../shared/capture-types";
+import type { CaptureConfig, CaptureRunState, CaptureRunSummary, CaptureTarget } from "../../shared/capture-types";
 import { sendToRenderer } from "../window-ref";
 import { CANONICAL_TO_NUT_KEY } from "./key-map-nut";
 import { findAllImages } from "./vision";
@@ -12,13 +12,14 @@ export type TriggerSource = "hotkey" | "manual";
 
 type FiredTarget = { x: number; y: number; at: number };
 
-const running = new Set<string>();
-const looping = new Set<string>();
-const aborted = new Set<string>();
-const firedByProfile = new Map<string, FiredTarget[]>();
+// Uma configuração global, uma execução: o estado é escalar em vez de indexado por perfil.
+let running = false;
+let looping = false;
+let aborted = false;
+let firedTargets: FiredTarget[] = [];
 
-function emitState(profileId: string, status: "idle" | "scanning" | "acting", lastRun?: CaptureRunSummary) {
-	sendToRenderer(IpcChannel.captureState, { profileId, status, lastRun });
+function emitState(status: CaptureRunState["status"], lastRun?: CaptureRunSummary) {
+	sendToRenderer(IpcChannel.captureState, { status, lastRun } satisfies CaptureRunState);
 }
 
 function sleep(ms: number, isAborted: () => boolean): Promise<void> {
@@ -33,9 +34,9 @@ function sleep(ms: number, isAborted: () => boolean): Promise<void> {
 	});
 }
 
-async function checkGameFocus(profile: CaptureProfile, source: TriggerSource) {
-	if (source === "manual" || !profile.requireGameFocus) return { focused: true, activeTitle: undefined };
-	return checkWindowFocus(profile.gameWindowTitle);
+async function checkGameFocus(config: CaptureConfig, source: TriggerSource) {
+	if (source === "manual" || !config.requireGameFocus) return { focused: true, activeTitle: undefined };
+	return checkWindowFocus(config.gameWindowTitle);
 }
 
 function resolveKeys(combo: string) {
@@ -47,8 +48,8 @@ function resolveKeys(combo: string) {
 
 // 40% do MENOR lado: com metade do maior lado, um recorte mais alto que o tile do jogo
 // engolia o corpo do tile de baixo como se fosse o mesmo alvo.
-function cooldownRadius(profile: CaptureProfile, target: CaptureTarget) {
-	return profile.cooldownRadiusPx ?? Math.max(Math.min(target.width, target.height) * 0.4, 8);
+function cooldownRadius(config: CaptureConfig, target: CaptureTarget) {
+	return config.cooldownRadiusPx ?? Math.max(Math.min(target.width, target.height) * 0.4, 8);
 }
 
 function centerOf(target: CaptureTarget) {
@@ -60,21 +61,19 @@ function centerOf(target: CaptureTarget) {
  * tela**: se o personagem andar entre um acionamento e outro os corpos mudam de lugar e o
  * cooldown perde a referência — por isso o TTL curto por padrão.
  */
-function filterByCooldown(profile: CaptureProfile, targets: CaptureTarget[], firedThisRun: FiredTarget[]) {
+function filterByCooldown(config: CaptureConfig, targets: CaptureTarget[], firedThisRun: FiredTarget[]) {
 	const now = Date.now();
-	const fromProfile =
-		profile.targetCooldownMs > 0
-			? (firedByProfile.get(profile.id) ?? []).filter((entry) => now - entry.at < profile.targetCooldownMs)
-			: [];
-	if (profile.targetCooldownMs > 0) firedByProfile.set(profile.id, fromProfile);
+	const remembered =
+		config.targetCooldownMs > 0 ? firedTargets.filter((entry) => now - entry.at < config.targetCooldownMs) : [];
+	if (config.targetCooldownMs > 0) firedTargets = remembered;
 
 	// firedThisRun entra sempre: sem ele, a segunda passada rejogaria pokébola nos mesmos
-	// corpos quando o cooldown do perfil está desligado.
-	const fired = [...fromProfile, ...firedThisRun];
+	// corpos quando o cooldown da configuração está desligado.
+	const fired = [...remembered, ...firedThisRun];
 
 	const isOnCooldown = (target: CaptureTarget) => {
 		const center = centerOf(target);
-		const radius = cooldownRadius(profile, target);
+		const radius = cooldownRadius(config, target);
 		return fired.some((entry) => Math.abs(entry.x - center.x) < radius && Math.abs(entry.y - center.y) < radius);
 	};
 
@@ -82,23 +81,21 @@ function filterByCooldown(profile: CaptureProfile, targets: CaptureTarget[], fir
 	return { fresh, skipped: targets.length - fresh.length };
 }
 
-function rememberFired(profileId: string, center: { x: number; y: number }) {
-	const fired = firedByProfile.get(profileId) ?? [];
-	fired.push({ ...center, at: Date.now() });
-	firedByProfile.set(profileId, fired);
+function rememberFired(center: { x: number; y: number }) {
+	firedTargets.push({ ...center, at: Date.now() });
 }
 
-async function parkMouse(profile: CaptureProfile, origin: { x: number; y: number }) {
-	if (profile.parking === "origem") {
+async function parkMouse(config: CaptureConfig, origin: { x: number; y: number }) {
+	if (config.parking === "origem") {
 		await mouse.setPosition(new Point(origin.x, origin.y));
 		return;
 	}
-	if (profile.parking === "fixo" && profile.parkingPoint) {
-		await mouse.setPosition(new Point(profile.parkingPoint.x, profile.parkingPoint.y));
+	if (config.parking === "fixo" && config.parkingPoint) {
+		await mouse.setPosition(new Point(config.parkingPoint.x, config.parkingPoint.y));
 		return;
 	}
 	// "centro" (e "fixo" sem ponto definido): centro da região do jogo, onde o personagem fica.
-	const region = profile.scanRegion;
+	const region = config.scanRegion;
 	if (region) {
 		const centerX = Math.round(region.x + region.width / 2);
 		const centerY = Math.round(region.y + region.height / 2);
@@ -110,15 +107,15 @@ async function parkMouse(profile: CaptureProfile, origin: { x: number; y: number
 }
 
 /** Uma varredura: acha os corpos visíveis agora e joga pokébola em cada um. */
-export async function runCaptureOnce(profile: CaptureProfile, source: TriggerSource): Promise<CaptureRunSummary> {
+export async function runCaptureOnce(config: CaptureConfig, source: TriggerSource): Promise<CaptureRunSummary> {
 	const startedAt = Date.now();
-	const isAborted = () => aborted.has(profile.id);
+	const isAborted = () => aborted;
 
-	const enabledTemplates = profile.templates.filter((template) => template.enabled && template.imagePath);
+	const enabledTemplates = config.templates.filter((template) => template.enabled && template.imagePath);
 	if (enabledTemplates.length === 0) {
 		return { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0, passes: 0, reason: "no-templates" };
 	}
-	const focus = await checkGameFocus(profile, source);
+	const focus = await checkGameFocus(config, source);
 	if (!focus.focused) {
 		return {
 			scanMs: 0,
@@ -133,8 +130,8 @@ export async function runCaptureOnce(profile: CaptureProfile, source: TriggerSou
 	}
 
 	const origin = await mouse.getPosition();
-	const ballKeys = resolveKeys(profile.ballKey);
-	// Alvos já atingidos nesta rodada. Separado do cooldown do perfil porque as passadas
+	const ballKeys = resolveKeys(config.ballKey);
+	// Alvos já atingidos nesta rodada. Separado do cooldown global porque as passadas
 	// precisam se enxergar mesmo com o cooldown desligado.
 	const firedThisRun: FiredTarget[] = [];
 
@@ -147,58 +144,58 @@ export async function runCaptureOnce(profile: CaptureProfile, source: TriggerSou
 	// Corpo empilhado fica escondido atrás do de cima: não dá para detectar antes do primeiro
 	// ser capturado e sumir. Por isso a rodada varre de novo depois de jogar, até não achar
 	// mais nada novo ou esgotar as passadas.
-	const maxPasses = Math.max(profile.rescanPasses, 1);
+	const maxPasses = Math.max(config.rescanPasses, 1);
 	for (let pass = 0; pass < maxPasses; pass += 1) {
 		if (isAborted()) break;
 		if (pass > 0) {
-			await sleep(profile.rescanDelayMs, isAborted);
+			await sleep(config.rescanDelayMs, isAborted);
 			if (isAborted()) break;
 		}
 
-		emitState(profile.id, "scanning");
+		emitState("scanning");
 		const scanStartedAt = Date.now();
 		const targets = await findAllImages(enabledTemplates, {
-			region: profile.scanRegion,
-			excludeRegions: profile.excludeRegions,
-			maxTargets: profile.maxTargets,
-			maxOverlap: profile.maxOverlap,
+			region: config.scanRegion,
+			excludeRegions: config.excludeRegions,
+			maxTargets: config.maxTargets,
+			maxOverlap: config.maxOverlap,
 		});
 		scanMs += Date.now() - scanStartedAt;
 		passes = pass + 1;
 
-		const { fresh, skipped: skippedNow } = filterByCooldown(profile, targets, firedThisRun);
+		const { fresh, skipped: skippedNow } = filterByCooldown(config, targets, firedThisRun);
 		skipped += skippedNow;
 		found += fresh.length;
-		const selected = fresh.slice(0, profile.maxTargets);
+		const selected = fresh.slice(0, config.maxTargets);
 		// Passada sem alvo novo: ou não sobrou corpo, ou o de baixo ainda não apareceu —
 		// insistir só gastaria tempo com o cursor preso.
 		if (selected.length === 0) break;
 
-		emitState(profile.id, "acting");
+		emitState("acting");
 		for (const target of selected) {
 			if (isAborted()) break;
 			const center = centerOf(target);
 			await mouse.setPosition(new Point(center.x, center.y));
-			await sleep(profile.delayBeforeKeyMs, isAborted);
+			await sleep(config.delayBeforeKeyMs, isAborted);
 			if (isAborted()) break;
 
 			if (ballKeys.length > 0) {
 				await keyboard.pressKey(...ballKeys);
 				await keyboard.releaseKey(...ballKeys);
 			}
-			if (profile.clickAfterKey) await mouse.click(Button.LEFT);
+			if (config.clickAfterKey) await mouse.click(Button.LEFT);
 
 			const entry = { ...center, at: Date.now() };
 			firedThisRun.push(entry);
-			rememberFired(profile.id, center);
+			rememberFired(center);
 			fired += 1;
-			await sleep(profile.delayBetweenTargetsMs, isAborted);
+			await sleep(config.delayBetweenTargetsMs, isAborted);
 		}
 	}
 
 	// Roda inclusive quando abortado: a tecla de pânico não pode largar o cursor
 	// em cima de uma criatura.
-	await parkMouse(profile, { x: origin.x, y: origin.y });
+	await parkMouse(config, { x: origin.x, y: origin.y });
 
 	return {
 		scanMs,
@@ -211,20 +208,20 @@ export async function runCaptureOnce(profile: CaptureProfile, source: TriggerSou
 	};
 }
 
-async function runGuarded(profile: CaptureProfile, body: () => Promise<CaptureRunSummary>) {
+async function runGuarded(body: () => Promise<CaptureRunSummary>) {
 	// Reentrância: apertar o atalho de novo no meio de uma rodada não empilha execução.
-	if (running.has(profile.id)) return;
-	running.add(profile.id);
-	aborted.delete(profile.id);
+	if (running) return;
+	running = true;
+	aborted = false;
 	try {
 		const summary = await body();
-		emitState(profile.id, "idle", summary);
+		emitState("idle", summary);
 	} catch (error) {
 		// Sem este catch a falha vira unhandled rejection: o atalho parece não fazer nada
 		// e não sobra nenhum sinal na interface.
 		const errorMessage = error instanceof Error ? error.message : String(error);
-		console.error(`[capture] falha na rodada do perfil "${profile.name}":`, error);
-		emitState(profile.id, "idle", {
+		console.error("[capture] falha na rodada:", error);
+		emitState("idle", {
 			scanMs: 0,
 			totalMs: 0,
 			found: 0,
@@ -235,56 +232,52 @@ async function runGuarded(profile: CaptureProfile, body: () => Promise<CaptureRu
 			errorMessage,
 		});
 	} finally {
-		running.delete(profile.id);
-		aborted.delete(profile.id);
+		running = false;
+		aborted = false;
 	}
 }
 
-async function runLoop(profile: CaptureProfile, source: TriggerSource) {
-	looping.add(profile.id);
+async function runLoop(config: CaptureConfig, source: TriggerSource) {
+	looping = true;
 	try {
-		await runGuarded(profile, async () => {
+		await runGuarded(async () => {
 			let last: CaptureRunSummary = { scanMs: 0, totalMs: 0, found: 0, fired: 0, skippedByCooldown: 0, passes: 0 };
-			while (looping.has(profile.id) && !aborted.has(profile.id)) {
-				last = await runCaptureOnce(profile, source);
+			while (looping && !aborted) {
+				last = await runCaptureOnce(config, source);
 				if (last.reason === "no-templates") break;
-				await sleep(profile.loopIntervalMs, () => aborted.has(profile.id));
+				await sleep(config.loopIntervalMs, () => aborted);
 			}
 			return last;
 		});
 	} finally {
-		looping.delete(profile.id);
+		looping = false;
 	}
 }
 
 /** Ponto de entrada do atalho global e do botão da UI. */
-export function triggerCapture(profile: CaptureProfile, source: TriggerSource): void {
-	if (profile.mode === "loop") {
-		if (looping.has(profile.id)) {
-			stopCapture(profile.id);
+export function triggerCapture(config: CaptureConfig, source: TriggerSource): void {
+	if (config.mode === "loop") {
+		if (looping) {
+			stopCapture();
 			return;
 		}
-		void runLoop(profile, source);
+		void runLoop(config, source);
 		return;
 	}
-	void runGuarded(profile, () => runCaptureOnce(profile, source));
+	void runGuarded(() => runCaptureOnce(config, source));
 }
 
-export function isCaptureRunning(profileId: string): boolean {
-	return running.has(profileId);
+export function isCaptureRunning(): boolean {
+	return running;
 }
 
-export function stopCapture(profileId: string): void {
-	looping.delete(profileId);
-	if (running.has(profileId)) aborted.add(profileId);
+/** Também é o caminho da tecla de pânico: existe no máximo uma execução para interromper. */
+export function stopCapture(): void {
+	looping = false;
+	if (running) aborted = true;
 }
 
-export function stopAllCaptures(): void {
-	looping.clear();
-	for (const id of running) aborted.add(id);
-}
-
-/** Zera a memória de cooldown — usado ao editar/desativar o perfil. */
-export function resetCaptureCooldown(profileId: string): void {
-	firedByProfile.delete(profileId);
+/** Zera a memória de cooldown — usado ao salvar ou desativar a configuração. */
+export function resetCaptureCooldown(): void {
+	firedTargets = [];
 }
