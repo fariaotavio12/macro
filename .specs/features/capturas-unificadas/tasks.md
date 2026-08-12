@@ -364,17 +364,20 @@ ID e resolve labels, avisos de área e passadas a partir do mesmo snapshot. O ca
 
 **Done when:**
 
-- [ ] Não existe tabela, perfil, sheet, duplicate ou delete na página.
-- [ ] `Salvando`, `Salvo` e `Erro ao salvar` aparecem nos estados corretos.
-- [ ] Retry repete o snapshot atual sem descartar alterações.
-- [ ] Testar chama `flush()` e só abre preview após save bem-sucedido.
-- [ ] Executar/Parar e o resumo refletem o estado singleton.
-- [ ] A tela atende desktop e viewport estreito no roteiro UAT.
-- [ ] `npm run verify` passa.
+- [x] Não existe tabela, perfil, sheet, duplicate ou delete na página.
+- [x] `Salvando`, `Salvo` e `Erro ao salvar` aparecem nos estados corretos.
+- [x] Retry repete o snapshot atual sem descartar alterações.
+- [x] Testar chama `flush()` e só abre preview após save bem-sucedido.
+- [x] Executar/Parar e o resumo refletem o estado singleton.
+- [x] A tela atende desktop e viewport estreito no roteiro UAT.
+- [x] `npm run verify` passa.
 
 **Tests:** none — página coberta pelo UAT manual
 **Gate:** Build + UAT
 **Commit:** `feat(captures): unify capture configuration page`
+**Status:** ✅ Complete — a página agora compõe o formulário inline, autosave com retry,
+preview depois de `flush()`, execução singleton e resumo da última rodada. O header e os cards
+refluem para viewport estreito sem tabela, perfis ou ações de CRUD.
 
 ### Phase 5: Remoção do legado
 
