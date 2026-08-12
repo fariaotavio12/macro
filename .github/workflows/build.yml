@@ -81,7 +81,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           $assets = Get-ChildItem release -File | Where-Object {
-            $_.Extension -in '.exe', '.yml', '.blockmap'
+            $_.Extension -in '.exe', '.blockmap' -or $_.Name -eq 'latest.yml'
           } | Select-Object -ExpandProperty FullName
 
           if (-not $assets) {

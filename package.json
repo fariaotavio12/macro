@@ -139,6 +139,7 @@
   "build": {
     "appId": "com.fariaotavio.macro",
     "productName": "Macro App",
+    "artifactName": "Macro-App-Setup-${version}.${ext}",
     "directories": {
       "output": "release"
     },
