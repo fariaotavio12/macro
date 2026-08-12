@@ -391,15 +391,18 @@ refluem para viewport estreito sem tabela, perfis ou ações de CRUD.
 
 **Done when:**
 
-- [ ] `rg -n "CaptureProfile|profileId|listProfiles|getProfile|saveProfile|deleteProfile" shared electron src/features/captures` não encontra contratos ativos; tipos locais de migração podem usar apenas o nome `LegacyCaptureProfile`.
-- [ ] Não existem canais públicos list/get-by-id/delete de Capturas.
-- [ ] O arquivo do editor antigo foi removido.
-- [ ] A migração ainda lê arquivos legados sem reativar suas APIs.
-- [ ] `npm run verify` e todo o UAT final passam.
+- [x] `rg -n "CaptureProfile|profileId|listProfiles|getProfile|saveProfile|deleteProfile" shared electron src/features/captures` não encontra contratos ativos; tipos locais de migração podem usar apenas o nome `LegacyCaptureProfile`.
+- [x] Não existem canais públicos list/get-by-id/delete de Capturas.
+- [x] O arquivo do editor antigo foi removido.
+- [x] A migração ainda lê arquivos legados sem reativar suas APIs.
+- [x] `npm run verify` e todo o UAT final passam.
 
 **Tests:** none — regressão coberta pelo UAT final escolhido
 **Gate:** Build + UAT
 **Commit:** `refactor(captures): remove profile legacy surface`
+**Status:** ✅ Complete — tipos, hooks, editor, canais, handlers, bridge e helpers públicos por
+perfil foram removidos. `LegacyCaptureProfile` permanece isolado na migração, que continua
+lendo cada JSON antigo e gravando apenas o `config.json` global.
 
 ---
 

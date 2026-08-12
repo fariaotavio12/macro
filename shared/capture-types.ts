@@ -63,16 +63,6 @@ export type CaptureConfig = {
 	loopIntervalMs: number;
 };
 
-/**
- * Formato antigo, com um perfil por arquivo.
- *
- * @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina.
- */
-export type CaptureProfile = CaptureConfig & {
-	id: string;
-	name: string;
-};
-
 export type CaptureTarget = {
 	templateId: string;
 	x: number;
@@ -103,13 +93,6 @@ export type CaptureRunState = {
 	status: "idle" | "scanning" | "acting";
 	lastRun?: CaptureRunSummary;
 };
-
-/**
- * Estado ao vivo endereçado por perfil.
- *
- * @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina.
- */
-export type CaptureProfileRunState = CaptureRunState & { profileId: string };
 
 export type CaptureScanPreview = {
 	/** Ausente quando o chamador pediu só a contagem — ver `capture.scanPreview`. */
@@ -142,11 +125,4 @@ export const defaultCaptureConfig = (): CaptureConfig => ({
 	requireGameFocus: true,
 	mode: "once",
 	loopIntervalMs: 500,
-});
-
-/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-export const defaultCaptureProfile = (id: string): CaptureProfile => ({
-	...defaultCaptureConfig(),
-	id,
-	name: "Novo perfil",
 });

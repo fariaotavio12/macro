@@ -151,11 +151,11 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
-| CAP-01 | P1: Página única | Tasks | In Progress (T13) |
+| CAP-01 | P1: Página única | Tasks | Implemented (T14) |
 | CAP-02 | P1: Página única | Tasks | Implemented (T13) |
 | CAP-03 | P1: Página única | Tasks | Implemented (T13) |
 | CAP-04 | P1: Página única | Tasks | Implemented (T13) |
-| CAP-05 | P1: Página única | Tasks | In Progress (T4) |
+| CAP-05 | P1: Página única | Tasks | Implemented (T14) |
 | CAP-06 | P1: Página única | Tasks | Implemented (T13) |
 | CAP-07 | P1: Página única | Tasks | Implemented (T13) |
 | CAP-08 | P1: Autosave | Tasks | Implemented (T13) |
@@ -168,7 +168,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-15 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-16 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-17 | P1: Migração | Tasks | Implemented (T3) |
-| CAP-18 | P1: Migração | Tasks | Implemented (T3) |
+| CAP-18 | P1: Migração | Tasks | Implemented (T14) |
 | CAP-19 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-20 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-21 | P2: Operação | Tasks | Implemented (T13) |

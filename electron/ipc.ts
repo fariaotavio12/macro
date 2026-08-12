@@ -1,7 +1,7 @@
 import { ipcMain } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
 import type { Macro, Region, Settings } from "../shared/macro-types";
-import type { CaptureConfig, CaptureProfile, CaptureScanPreview } from "../shared/capture-types";
+import type { CaptureConfig, CaptureScanPreview } from "../shared/capture-types";
 import * as storage from "./engine/storage";
 import * as captureStorage from "./engine/capture-storage";
 import { startPlaying, stopPlaying } from "./engine/play-manager";
@@ -26,11 +26,6 @@ function broadcastRecordState(recording: boolean) {
 
 function broadcastMacrosChanged() {
 	broadcast(IpcChannel.macroChanged, storage.listMacros());
-}
-
-/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-function broadcastProfilesChanged() {
-	broadcast(IpcChannel.captureProfilesChanged, captureStorage.listProfiles());
 }
 
 /**
@@ -138,36 +133,6 @@ export function registerIpcHandlers() {
 	ipcMain.handle(IpcChannel.captureStop, () => stopCapture());
 	ipcMain.handle(IpcChannel.captureScanPreview, (_event, includeImage: boolean) =>
 		runScanPreview(captureStorage.getConfig(), includeImage),
-	);
-
-	ipcMain.handle(IpcChannel.captureProfileList, () => captureStorage.listProfiles());
-	ipcMain.handle(IpcChannel.captureProfileSave, (_event, profile: CaptureProfile) => {
-		const saved = captureStorage.saveProfile(profile);
-		resetCaptureCooldown();
-		syncHotkeysFromStorage();
-		broadcastProfilesChanged();
-		return saved;
-	});
-	ipcMain.handle(IpcChannel.captureProfileDelete, (_event, id: string) => {
-		stopCapture();
-		captureStorage.deleteProfile(id);
-		resetCaptureCooldown();
-		syncHotkeysFromStorage();
-		broadcastProfilesChanged();
-	});
-	ipcMain.handle(IpcChannel.captureProfileRun, (_event, id: string) => {
-		const profile = captureStorage.getProfile(id);
-		if (!profile) return;
-		triggerCapture(profile, "manual");
-	});
-	ipcMain.handle(IpcChannel.captureProfileStop, () => stopCapture());
-	ipcMain.handle(
-		IpcChannel.captureProfileScanPreview,
-		async (_event, id: string, includeImage: boolean): Promise<CaptureScanPreview | null> => {
-			const profile = captureStorage.getProfile(id);
-			if (!profile) return null;
-			return runScanPreview(profile, includeImage);
-		},
 	);
 
 	ipcMain.handle(IpcChannel.dockToggle, (_event, expanded: boolean) => toggleDockExpanded(expanded));

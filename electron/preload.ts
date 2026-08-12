@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import { IpcChannel } from "../shared/ipc-channels";
 import type { Macro, PlayState, RecordState, Region, Settings, Step } from "../shared/macro-types";
-import type { CaptureConfig, CaptureProfile, CaptureRunState, CaptureScanPreview } from "../shared/capture-types";
+import type { CaptureConfig, CaptureRunState, CaptureScanPreview } from "../shared/capture-types";
 import type { CaptureResult, CropSaveResult } from "./engine/screenshot";
 
 const macroBridge = {
@@ -81,30 +81,6 @@ const captureBridge = {
 		ipcRenderer.on(IpcChannel.captureState, handler);
 		return () => {
 			ipcRenderer.removeListener(IpcChannel.captureState, handler);
-		};
-	},
-
-	// Superfície por perfil: só existe enquanto a migração incremental não termina.
-	/** @deprecated */
-	listProfiles: (): Promise<CaptureProfile[]> => ipcRenderer.invoke(IpcChannel.captureProfileList),
-	/** @deprecated */
-	saveProfile: (profile: CaptureProfile): Promise<CaptureProfile> =>
-		ipcRenderer.invoke(IpcChannel.captureProfileSave, profile),
-	/** @deprecated */
-	deleteProfile: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureProfileDelete, id),
-	/** @deprecated */
-	runProfile: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureProfileRun, id),
-	/** @deprecated */
-	stopProfile: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannel.captureProfileStop, id),
-	/** @deprecated */
-	scanPreviewProfile: (id: string, includeImage = true): Promise<CaptureScanPreview | null> =>
-		ipcRenderer.invoke(IpcChannel.captureProfileScanPreview, id, includeImage),
-	/** @deprecated */
-	onProfilesChanged: (listener: (profiles: CaptureProfile[]) => void) => {
-		const handler = (_event: Electron.IpcRendererEvent, profiles: CaptureProfile[]) => listener(profiles);
-		ipcRenderer.on(IpcChannel.captureProfilesChanged, handler);
-		return () => {
-			ipcRenderer.removeListener(IpcChannel.captureProfilesChanged, handler);
 		};
 	},
 };

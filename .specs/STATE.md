@@ -15,6 +15,6 @@
 
 - **Feature:** `capturas-unificadas`
 - **Phase:** Execute
-- **Status:** In progress
-- **Next:** Executar os lotes T1–T6 e T7–T14, depois rodar o Verifier independente.
-- **Workspace note:** Existem alterações locais do usuário em arquivos afetados, incluindo `shared/capture-types.ts`, `electron/ipc.ts` e `electron/preload.ts`; a implementação deve reconciliá-las sem sobrescrever trabalho existente.
+- **Status:** T1–T14 complete
+- **Next:** Rodar o Verifier independente, registrar `validation.md` e publicar somente depois do gate final.
+- **Workspace note:** Os diffs locais preexistentes em `.claude/**` continuam intocados e fora dos commits da feature.

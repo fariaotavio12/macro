@@ -24,14 +24,6 @@ export const IpcChannel = {
 	captureStop: "capture:stop",
 	captureState: "capture:state",
 	captureScanPreview: "capture:scan-preview",
-	// Canais por perfil: só existem enquanto a migração incremental não termina.
-	captureProfileList: "capture:profile-list",
-	captureProfileSave: "capture:profile-save",
-	captureProfileDelete: "capture:profile-delete",
-	captureProfilesChanged: "capture:profiles-changed",
-	captureProfileRun: "capture:profile-run",
-	captureProfileStop: "capture:profile-stop",
-	captureProfileScanPreview: "capture:profile-scan-preview",
 	dockToggle: "dock:toggle",
 	windowRestoreMain: "window:restore-main",
 } as const;

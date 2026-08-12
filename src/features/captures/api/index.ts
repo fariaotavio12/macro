@@ -1,11 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { CaptureConfig, CaptureProfile } from "@shared/capture-types";
+import type { CaptureConfig } from "@shared/capture-types";
 
 export const captureKeys = {
 	config: ["captures", "config"] as const,
 	scanPreview: ["captures", "scan-preview"] as const,
-	/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-	profiles: ["captures", "profiles"] as const,
 };
 
 export const useCaptureConfig = () =>
@@ -33,30 +31,3 @@ export const useCaptureScanPreview = (enabled: boolean) =>
 		gcTime: 0,
 		refetchOnMount: "always",
 	});
-
-// Hooks por perfil: só existem enquanto a migração incremental não termina.
-
-/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-export const useCaptureProfiles = () =>
-	useQuery({
-		queryKey: captureKeys.profiles,
-		queryFn: () => window.api.capture.listProfiles(),
-	});
-
-/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-export const useSaveCaptureProfile = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (profile: CaptureProfile) => window.api.capture.saveProfile(profile),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: captureKeys.profiles }),
-	});
-};
-
-/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
-export const useDeleteCaptureProfile = () => {
-	const queryClient = useQueryClient();
-	return useMutation({
-		mutationFn: (id: string) => window.api.capture.deleteProfile(id),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: captureKeys.profiles }),
-	});
-};
