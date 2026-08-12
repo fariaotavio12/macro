@@ -101,15 +101,16 @@ T14 não possui dependência interna na fase.
 
 **Done when:**
 
-- [ ] A seleção do perfil-base é determinística por estado ativo e ordem alfabética.
-- [ ] Templates com nomes ou imagens iguais são preservados.
-- [ ] Somente IDs repetidos posteriores são regenerados.
-- [ ] Perfis vazios produzem a configuração default.
-- [ ] `npm run verify` passa.
+- [x] A seleção do perfil-base é determinística por estado ativo e ordem alfabética.
+- [x] Templates com nomes ou imagens iguais são preservados.
+- [x] Somente IDs repetidos posteriores são regenerados.
+- [x] Perfis vazios produzem a configuração default.
+- [x] `npm run verify` passa.
 
 **Tests:** none — cenários cobertos pelo UAT de migração
 **Gate:** Build
 **Commit:** `feat(captures): add legacy profile migration`
+**Status:** ✅ Complete
 
 #### T3: Persistir uma configuração global atomicamente
 
