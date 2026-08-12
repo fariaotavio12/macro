@@ -155,7 +155,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-02 | P1: Página única | Tasks | In Tasks |
 | CAP-03 | P1: Página única | Tasks | In Tasks |
 | CAP-04 | P1: Página única | Tasks | In Tasks |
-| CAP-05 | P1: Página única | Tasks | In Tasks |
+| CAP-05 | P1: Página única | Tasks | In Progress (T1) |
 | CAP-06 | P1: Página única | Tasks | In Tasks |
 | CAP-07 | P1: Página única | Tasks | In Tasks |
 | CAP-08 | P1: Autosave | Tasks | In Tasks |
@@ -169,7 +169,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-16 | P1: Migração | Tasks | In Tasks |
 | CAP-17 | P1: Migração | Tasks | In Tasks |
 | CAP-18 | P1: Migração | Tasks | In Tasks |
-| CAP-19 | P1: Migração | Tasks | In Tasks |
+| CAP-19 | P1: Migração | Tasks | In Progress (T1) |
 | CAP-20 | P1: Migração | Tasks | In Tasks |
 | CAP-21 | P2: Operação | Tasks | In Tasks |
 | CAP-22 | P2: Operação | Tasks | In Tasks |
@@ -178,7 +178,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-25 | P2: Operação | Tasks | In Tasks |
 | CAP-26 | P2: Operação | Tasks | In Tasks |
 | CAP-27 | Edge cases | Tasks | In Tasks |
-| CAP-28 | Edge cases | Tasks | In Tasks |
+| CAP-28 | Edge cases | Tasks | In Progress (T1) |
 | CAP-29 | Edge cases | Tasks | In Tasks |
 | CAP-30 | Edge cases | Tasks | In Tasks |
 

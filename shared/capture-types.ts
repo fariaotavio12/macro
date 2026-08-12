@@ -17,9 +17,8 @@ export type CaptureParking = "origem" | "centro" | "fixo";
 
 export type CaptureMode = "once" | "loop";
 
-export type CaptureProfile = {
-	id: string;
-	name: string;
+/** Configuração global de Capturas: uma só, sem identidade nem nome. */
+export type CaptureConfig = {
 	/** Atalho global de disparo. */
 	hotkey?: string;
 	active: boolean;
@@ -64,6 +63,16 @@ export type CaptureProfile = {
 	loopIntervalMs: number;
 };
 
+/**
+ * Formato antigo, com um perfil por arquivo.
+ *
+ * @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina.
+ */
+export type CaptureProfile = CaptureConfig & {
+	id: string;
+	name: string;
+};
+
 export type CaptureTarget = {
 	templateId: string;
 	x: number;
@@ -89,14 +98,22 @@ export type CaptureRunSummary = {
 	activeWindowTitle?: string;
 };
 
+/** Só existe uma execução de Capturas por vez — o estado ao vivo é único. */
 export type CaptureRunState = {
-	profileId: string;
 	status: "idle" | "scanning" | "acting";
 	lastRun?: CaptureRunSummary;
 };
 
+/**
+ * Estado ao vivo endereçado por perfil.
+ *
+ * @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina.
+ */
+export type CaptureProfileRunState = CaptureRunState & { profileId: string };
+
 export type CaptureScanPreview = {
-	dataUrl: string;
+	/** Ausente quando o chamador pediu só a contagem — ver `capture.scanPreview`. */
+	dataUrl?: string;
 	width: number;
 	height: number;
 	scanRegion?: Region;
@@ -108,9 +125,7 @@ export const DEFAULT_TEMPLATE_TOLERANCE = 0.82;
 /** Abaixo disso o matchTemplate devolve ruído demais e a varredura fica cara. */
 export const MIN_TEMPLATE_TOLERANCE = 0.5;
 
-export const defaultCaptureProfile = (id: string): CaptureProfile => ({
-	id,
-	name: "Novo perfil",
+export const defaultCaptureConfig = (): CaptureConfig => ({
 	active: false,
 	templates: [],
 	excludeRegions: [],
@@ -127,4 +142,11 @@ export const defaultCaptureProfile = (id: string): CaptureProfile => ({
 	requireGameFocus: true,
 	mode: "once",
 	loopIntervalMs: 500,
+});
+
+/** @deprecated Só existe enquanto a migração incremental para `CaptureConfig` não termina. */
+export const defaultCaptureProfile = (id: string): CaptureProfile => ({
+	...defaultCaptureConfig(),
+	id,
+	name: "Novo perfil",
 });

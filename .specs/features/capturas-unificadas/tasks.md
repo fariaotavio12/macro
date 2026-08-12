@@ -81,14 +81,15 @@ T14 não possui dependência interna na fase.
 
 **Done when:**
 
-- [ ] O novo contrato não contém `id` nem `name` de perfil.
-- [ ] Todos os defaults atuais permanecem equivalentes.
-- [ ] `CaptureRunState` pode representar uma única execução sem `profileId`.
-- [ ] `npm run verify` passa.
+- [x] O novo contrato não contém `id` nem `name` de perfil.
+- [x] Todos os defaults atuais permanecem equivalentes.
+- [x] `CaptureRunState` pode representar uma única execução sem `profileId`.
+- [x] `npm run verify` passa.
 
 **Tests:** none — decisão explícita: build + UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): introduce global capture config`
+**Status:** ✅ Complete
 
 #### T2: Implementar a transformação de perfis legados
 
@@ -157,7 +158,7 @@ T14 não possui dependência interna na fase.
 #### T5: Substituir os contratos IPC por operações globais
 
 **What:** Trocar list/get-by-id/save/delete por get/save/run/stop/scan singleton nos canais, handlers e bridge preload.
-**Where:** `shared/ipc-channels.ts`, `electron/ipc.ts`, `electron/preload.ts`
+**Where:** `shared/ipc-channels.ts`, `electron/ipc.ts`, `electron/preload.ts`, `electron/engine/screenshot.ts`, `electron/engine/jimp-runtime.ts`
 **Depends on:** T4
 **Reuses:** Broadcast, preview com janelas ocultas e sincronização de hotkeys existentes.
 **Requirement:** CAP-08, CAP-10, CAP-13, CAP-14, CAP-21–CAP-26
