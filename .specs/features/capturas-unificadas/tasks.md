@@ -244,16 +244,20 @@ global sem ID (1 linha), o que dispensou um hook de preview legado.
 
 **Done when:**
 
-- [ ] Há no máximo um save em voo.
-- [ ] Uma edição mais nova nunca é substituída por resposta antiga.
-- [ ] `flush()` aguarda a revisão local mais recente ser confirmada.
-- [ ] Erro mantém o draft e expõe retry com a mensagem original.
-- [ ] Unmount tenta descarregar o snapshot pendente sem bloquear indefinidamente.
-- [ ] `npm run verify` passa.
+- [x] Há no máximo um save em voo.
+- [x] Uma edição mais nova nunca é substituída por resposta antiga.
+- [x] `flush()` aguarda a revisão local mais recente ser confirmada.
+- [x] Erro mantém o draft e expõe retry com a mensagem original.
+- [x] Unmount tenta descarregar o snapshot pendente sem bloquear indefinidamente.
+- [x] `npm run verify` passa.
 
 **Tests:** none — ordering e falhas cobertos pelo UAT manual escolhido
 **Gate:** Build
 **Commit:** `feat(captures): add serialized autosave`
+**Status:** ✅ Complete — a fila usa um contador de revisão local: `inFlight` garante um save por
+vez e o laço regrava a revisão mais nova assim que a anterior confirma. O draft só recebe a
+resposta do main quando nenhuma edição chegou depois dela. O flush de unmount dispara sem
+aguardar para não travar a navegação. Ainda não há consumidor — a página entra em T13.
 
 #### T9: Simplificar o hook de estado de execução
 
