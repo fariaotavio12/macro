@@ -23,7 +23,7 @@ type ScanPreviewDialogProps = {
 const percent = (value: number, total: number) => `${(value / total) * 100}%`;
 
 export const ScanPreviewDialog = ({ profile, open, onOpenChange }: ScanPreviewDialogProps) => {
-	const { data: preview, isFetching, isError, refetch } = useCaptureScanPreview(profile.id, open);
+	const { data: preview, isFetching, isError, refetch } = useCaptureScanPreview(open);
 
 	const templateName = (templateId: string) =>
 		profile.templates.find((template) => template.id === templateId)?.name ?? "—";

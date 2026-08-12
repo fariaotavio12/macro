@@ -158,10 +158,10 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-05 | P1: Página única | Tasks | In Progress (T4) |
 | CAP-06 | P1: Página única | Tasks | In Tasks |
 | CAP-07 | P1: Página única | Tasks | In Tasks |
-| CAP-08 | P1: Autosave | Tasks | In Progress (T5) |
+| CAP-08 | P1: Autosave | Tasks | In Progress (T7) |
 | CAP-09 | P1: Autosave | Tasks | In Tasks |
-| CAP-10 | P1: Autosave | Tasks | In Progress (T5) |
-| CAP-11 | P1: Autosave | Tasks | In Tasks |
+| CAP-10 | P1: Autosave | Tasks | In Progress (T7) |
+| CAP-11 | P1: Autosave | Tasks | In Progress (T7) |
 | CAP-12 | P1: Autosave | Tasks | In Tasks |
 | CAP-13 | P1: Autosave | Tasks | In Progress (T5) |
 | CAP-14 | P1: Autosave | Tasks | In Progress (T5) |

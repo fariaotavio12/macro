@@ -219,15 +219,20 @@ e continua pendente com o usuário.
 
 **Done when:**
 
-- [ ] A query possui uma única chave de configuração.
-- [ ] Save retorna o snapshot confirmado pelo main.
-- [ ] Preview não recebe ID.
-- [ ] Não existem mutations públicas de delete ou duplicate.
-- [ ] `npm run verify` passa.
+- [x] A query possui uma única chave de configuração.
+- [x] Save retorna o snapshot confirmado pelo main.
+- [x] Preview não recebe ID.
+- [x] Não existem mutations públicas de delete ou duplicate.
+- [x] `npm run verify` passa.
 
 **Tests:** none — decisão explícita: build + UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): query global config`
+**Status:** ✅ Complete — o contrato global (`useCaptureConfig`, `useSaveCaptureConfig`,
+`useCaptureScanPreview()`) não tem delete nem duplicate. Os hooks por perfil sobrevivem
+`@deprecated` porque a página e o editor antigo só migram em T13/T14 e o gate é o build do
+repositório inteiro; T14 apaga esse bloco. O dialog de preview já passou a usar a varredura
+global sem ID (1 linha), o que dispensou um hook de preview legado.
 
 #### T8: Implementar o coordenador de autosave latest-wins
 
