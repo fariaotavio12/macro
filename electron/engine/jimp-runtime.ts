@@ -10,5 +10,8 @@ type JimpStatic = typeof JimpNamespace;
  */
 export const jimp: JimpStatic = (JimpNamespace as unknown as { default?: JimpStatic }).default ?? JimpNamespace;
 
-/** Literal em vez de `Jimp.MIME_PNG` pelo mesmo motivo acima. */
+/** Literais em vez de `Jimp.MIME_*` pelo mesmo motivo acima. */
 export const MIME_PNG = "image/png";
+export const MIME_JPEG = "image/jpeg";
+/** `Jimp.AUTO` — mantém a proporção no resize. */
+export const JIMP_AUTO = -1;

@@ -278,12 +278,12 @@ function buildHtml(side: "left" | "right") {
 					const id = el.getAttribute("data-toggle");
 					const profile = profiles.find((p) => p.id === id);
 					if (!profile) return;
-					await window.api.capture.save({ ...profile, active: !profile.active });
+					await window.api.capture.saveProfile({ ...profile, active: !profile.active });
 				});
 			});
 
 			list.querySelectorAll("[data-run]").forEach((el) => {
-				el.addEventListener("click", () => window.api.capture.run(el.getAttribute("data-run")));
+				el.addEventListener("click", () => window.api.capture.runProfile(el.getAttribute("data-run")));
 			});
 
 			list.querySelectorAll("[data-test]").forEach((el) => {
@@ -292,7 +292,7 @@ function buildHtml(side: "left" | "right") {
 					el.disabled = true;
 					el.textContent = "...";
 					try {
-						const preview = await window.api.capture.scanPreview(id);
+						const preview = await window.api.capture.scanPreviewProfile(id);
 						scanResults[id] = preview
 							? \`\${preview.targets.length} alvo(s) · \${preview.scanMs} ms\`
 							: "perfil não encontrado";
@@ -313,7 +313,7 @@ function buildHtml(side: "left" | "right") {
 		}
 
 		async function refresh() {
-			[macros, profiles] = await Promise.all([window.api.macro.list(), window.api.capture.list()]);
+			[macros, profiles] = await Promise.all([window.api.macro.list(), window.api.capture.listProfiles()]);
 			render();
 		}
 
@@ -322,7 +322,7 @@ function buildHtml(side: "left" | "right") {
 			render();
 		});
 
-		window.api.capture.onChanged((updated) => {
+		window.api.capture.onProfilesChanged((updated) => {
 			profiles = updated;
 			render();
 		});

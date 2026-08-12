@@ -68,9 +68,9 @@ export const PageCaptures = () => {
 		(profile: CaptureProfile) => {
 			const status = captureStates[profile.id]?.status;
 			if (status === "scanning" || status === "acting") {
-				window.api.capture.stop(profile.id);
+				window.api.capture.stopProfile(profile.id);
 			} else {
-				window.api.capture.run(profile.id);
+				window.api.capture.runProfile(profile.id);
 			}
 		},
 		[captureStates],

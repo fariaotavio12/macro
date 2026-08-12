@@ -1,7 +1,7 @@
 import { screen, imageToJimp } from "@nut-tree-fork/nut-js";
 import type { Region } from "../../shared/macro-types";
 import { isMainWindowVisible, minimizeMainWindow, showMainWindow } from "../window-ref";
-import { MIME_PNG } from "./jimp-runtime";
+import { JIMP_AUTO, MIME_JPEG, MIME_PNG } from "./jimp-runtime";
 import { saveImageBuffer } from "./storage";
 
 type JimpImage = ReturnType<typeof imageToJimp>;
@@ -34,11 +34,30 @@ export async function captureScreen(): Promise<CaptureResult> {
 	return { dataUrl, width: jimpImage.bitmap.width, height: jimpImage.bitmap.height };
 }
 
-/** Print da tela como está agora, sem mexer na janela do app. */
-export async function captureScreenRaw(): Promise<CaptureResult> {
+const PREVIEW_MAX_WIDTH = 1280;
+
+/**
+ * Print reduzido e em JPEG, só para conferência visual do preview de detecção.
+ *
+ * O PNG cru de uma tela 1080p vira alguns MB de base64 e atravessa o IPC como string —
+ * repetido, isso estourava a memória do renderer. As dimensões devolvidas são as **reais**
+ * da tela: as caixas dos alvos são posicionadas em porcentagem, então continuam alinhadas
+ * mesmo com a imagem reduzida.
+ */
+export async function captureScreenPreview(): Promise<CaptureResult> {
 	const jimpImage = imageToJimp(await screen.grab());
-	const dataUrl = await jimpImage.getBase64Async(MIME_PNG);
-	return { dataUrl, width: jimpImage.bitmap.width, height: jimpImage.bitmap.height };
+	const width = jimpImage.bitmap.width;
+	const height = jimpImage.bitmap.height;
+
+	const preview = width > PREVIEW_MAX_WIDTH ? jimpImage.clone().resize(PREVIEW_MAX_WIDTH, JIMP_AUTO) : jimpImage;
+	const dataUrl = await preview.quality(80).getBase64Async(MIME_JPEG);
+	return { dataUrl, width, height };
+}
+
+/** Dimensões reais da tela sem criar ou transportar uma imagem pelo IPC. */
+export async function screenSize(): Promise<Omit<CaptureResult, "dataUrl">> {
+	const grabbed = await screen.grab();
+	return { width: grabbed.width, height: grabbed.height };
 }
 
 /**

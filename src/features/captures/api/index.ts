@@ -10,13 +10,13 @@ export const captureKeys = {
 export const useCaptureProfiles = () =>
 	useQuery({
 		queryKey: captureKeys.all,
-		queryFn: () => window.api.capture.list(),
+		queryFn: () => window.api.capture.listProfiles(),
 	});
 
 export const useSaveCaptureProfile = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (profile: CaptureProfile) => window.api.capture.save(profile),
+		mutationFn: (profile: CaptureProfile) => window.api.capture.saveProfile(profile),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: captureKeys.all }),
 	});
 };
@@ -25,7 +25,7 @@ export const useSaveCaptureProfile = () => {
 export const useCaptureScanPreview = (profileId: string, enabled: boolean) =>
 	useQuery({
 		queryKey: captureKeys.scanPreview(profileId),
-		queryFn: () => window.api.capture.scanPreview(profileId),
+		queryFn: () => window.api.capture.scanPreviewProfile(profileId),
 		enabled,
 		staleTime: 0,
 		gcTime: 0,
@@ -35,7 +35,7 @@ export const useCaptureScanPreview = (profileId: string, enabled: boolean) =>
 export const useDeleteCaptureProfile = () => {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => window.api.capture.delete(id),
+		mutationFn: (id: string) => window.api.capture.deleteProfile(id),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: captureKeys.all }),
 	});
 };

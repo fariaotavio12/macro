@@ -169,16 +169,20 @@ T14 não possui dependência interna na fase.
 
 **Done when:**
 
-- [ ] Nenhuma operação pública de Capturas recebe ID de perfil.
-- [ ] Save valida conflito antes de persistir e sincroniza o hotkey somente após sucesso.
-- [ ] Save reseta cooldown e emite a configuração confirmada.
-- [ ] Preview usa a configuração global e mantém o comportamento de ocultar app e dock.
-- [ ] Tipos exportados pelo preload refletem o novo contrato.
-- [ ] `npm run verify` passa.
+- [x] Nenhuma operação pública de Capturas recebe ID de perfil.
+- [x] Save valida conflito antes de persistir e sincroniza o hotkey somente após sucesso.
+- [x] Save reseta cooldown e emite a configuração confirmada.
+- [x] Preview usa a configuração global e mantém o comportamento de ocultar app e dock.
+- [x] Tipos exportados pelo preload refletem o novo contrato.
+- [x] `npm run verify` passa.
 
 **Tests:** none — bridge coberta pelo UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): expose global electron bridge`
+**Status:** ✅ Complete — o contrato global usa os nomes limpos (`capture:*`, `capture.get/save/run/stop/scanPreview/onChanged`).
+A superfície por perfil sobrevive renomeada (`capture:profile-*`, `capture.*Profile`, `@deprecated`) porque o renderer só
+migra em T7–T13 e o gate é o build do repositório inteiro; T14 apaga esse bloco sem renomear nada.
+`onState` continua tipado em `CaptureProfileRunState` até T9.
 
 #### T6: Adaptar o dock para uma única Captura
 
