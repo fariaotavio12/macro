@@ -122,16 +122,17 @@ T14 não possui dependência interna na fase.
 
 **Done when:**
 
-- [ ] `getConfig()` sempre retorna uma configuração normalizada.
-- [ ] Uma configuração existente impede nova migração.
-- [ ] Arquivos legados inválidos são logados e não interrompem os demais.
-- [ ] Os JSONs legados permanecem intactos.
-- [ ] Falha antes do rename preserva o último `config.json` válido.
-- [ ] `npm run verify` passa.
+- [x] `getConfig()` sempre retorna uma configuração normalizada.
+- [x] Uma configuração existente impede nova migração.
+- [x] Arquivos legados inválidos são logados e não interrompem os demais.
+- [x] Os JSONs legados permanecem intactos.
+- [x] Falha antes do rename preserva o último `config.json` válido.
+- [x] `npm run verify` passa.
 
 **Tests:** none — cenários cobertos pelo UAT de persistência e migração
 **Gate:** Build
 **Commit:** `feat(captures): persist global config atomically`
+**Status:** ✅ Complete
 
 ### Phase 2: Runtime e bridge Electron
 
