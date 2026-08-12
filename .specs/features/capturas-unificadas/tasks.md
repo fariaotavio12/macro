@@ -194,15 +194,18 @@ migra em T7–T13 e o gate é o build do repositório inteiro; T14 apaga esse bl
 
 **Done when:**
 
-- [ ] A aba Capturas nunca mostra nomes ou múltiplas linhas de perfil.
-- [ ] Toggle persiste `active` na configuração global.
-- [ ] Executar e testar chamam APIs sem ID.
-- [ ] Alterações emitidas pelo main atualizam a linha.
-- [ ] `npm run verify` passa.
+- [x] A aba Capturas nunca mostra nomes ou múltiplas linhas de perfil.
+- [x] Toggle persiste `active` na configuração global.
+- [x] Executar e testar chamam APIs sem ID.
+- [x] Alterações emitidas pelo main atualizam a linha.
+- [x] `npm run verify` passa.
 
 **Tests:** none — dock coberto pelo UAT manual
 **Gate:** Build + UAT
 **Commit:** `feat(captures): simplify dock capture controls`
+**Status:** ✅ Complete no build e na inspeção local (todas as chamadas do dock existem na bridge;
+`broadcast` alcança a janela do dock). O UAT interativo do dock depende do app rodando com o jogo
+e continua pendente com o usuário.
 
 ### Phase 3: Estado e autosave do renderer
 

@@ -206,9 +206,10 @@ function buildHtml(side: "left" | "right") {
 		let expanded = false;
 		let activeTab = "macros";
 		let macros = [];
-		let profiles = [];
-		// Resultado do último "Testar" por perfil — some quando a lista é recriada.
-		const scanResults = {};
+		// Uma configuração global: a aba Capturas é uma linha fixa, não uma lista.
+		let captureConfig = null;
+		// Resultado do último "Testar" — some quando a linha é recriada.
+		let scanResult = "";
 
 		const arrow = document.getElementById("arrow");
 		const list = document.getElementById("list");
@@ -250,57 +251,53 @@ function buildHtml(side: "left" | "right") {
 		}
 
 		function renderCaptures() {
-			if (profiles.length === 0) {
-				list.innerHTML = '<div class="empty">Nenhum perfil de captura</div>';
+			if (!captureConfig) {
+				list.innerHTML = '<div class="empty">Carregando configuração...</div>';
 				return;
 			}
-			list.innerHTML = profiles
-				.map(
-					(p) => \`
-					<div>
-						<div class="row">
-							<span class="row-name" title="\${escapeHtml(p.name)}">\${escapeHtml(p.name)}</span>
-							\${p.hotkey ? \`<span class="row-hotkey">\${escapeHtml(p.hotkey)}</span>\` : ""}
-							<div class="row-actions">
-								<button class="mini-btn" data-run="\${p.id}" title="Executar uma varredura agora">▶</button>
-								<button class="mini-btn" data-test="\${p.id}" title="Só detecta, não joga pokébola">Testar</button>
-								<button class="switch \${p.active ? "on" : ""}" data-toggle="\${p.id}"></button>
-							</div>
+			// Sem pokémon ativo com imagem não há o que detectar — mesmo critério da tela.
+			const hasUsableTemplate = (captureConfig.templates || []).some((t) => t.enabled && t.imagePath);
+			list.innerHTML = \`
+				<div>
+					<div class="row">
+						<span class="row-name">Capturas</span>
+						\${captureConfig.hotkey ? \`<span class="row-hotkey">\${escapeHtml(captureConfig.hotkey)}</span>\` : ""}
+						<div class="row-actions">
+							<button class="mini-btn" id="captureRun" title="Executar uma varredura agora">▶</button>
+							<button class="mini-btn" id="captureTest" title="Só detecta, não joga pokébola" \${hasUsableTemplate ? "" : "disabled"}>Testar</button>
+							<button class="switch \${captureConfig.active ? "on" : ""}" id="captureToggle"></button>
 						</div>
-						\${scanResults[p.id] ? \`<div class="row-result">\${escapeHtml(scanResults[p.id])}</div>\` : ""}
 					</div>
-				\`,
-				)
-				.join("");
+					\${scanResult ? \`<div class="row-result">\${escapeHtml(scanResult)}</div>\` : ""}
+				</div>
+			\`;
 
-			list.querySelectorAll("[data-toggle]").forEach((el) => {
-				el.addEventListener("click", async () => {
-					const id = el.getAttribute("data-toggle");
-					const profile = profiles.find((p) => p.id === id);
-					if (!profile) return;
-					await window.api.capture.saveProfile({ ...profile, active: !profile.active });
-				});
-			});
-
-			list.querySelectorAll("[data-run]").forEach((el) => {
-				el.addEventListener("click", () => window.api.capture.runProfile(el.getAttribute("data-run")));
-			});
-
-			list.querySelectorAll("[data-test]").forEach((el) => {
-				el.addEventListener("click", async () => {
-					const id = el.getAttribute("data-test");
-					el.disabled = true;
-					el.textContent = "...";
-					try {
-						const preview = await window.api.capture.scanPreviewProfile(id);
-						scanResults[id] = preview
-							? \`\${preview.targets.length} alvo(s) · \${preview.scanMs} ms\`
-							: "perfil não encontrado";
-					} catch (error) {
-						scanResults[id] = "falhou: " + (error && error.message ? error.message : error);
-					}
+			document.getElementById("captureToggle").addEventListener("click", async () => {
+				try {
+					// O main devolve o snapshot confirmado; onChanged repinta a linha.
+					await window.api.capture.save({ ...captureConfig, active: !captureConfig.active });
+					scanResult = "";
+				} catch (error) {
+					// Atalho em conflito: sem isto o switch voltaria sozinho e sem explicação.
+					scanResult = error && error.message ? error.message : String(error);
 					render();
-				});
+				}
+			});
+
+			document.getElementById("captureRun").addEventListener("click", () => window.api.capture.run());
+
+			document.getElementById("captureTest").addEventListener("click", async (event) => {
+				const button = event.currentTarget;
+				button.disabled = true;
+				button.textContent = "...";
+				try {
+					// Sem imagem: o dock só mostra a contagem, e o base64 é caro de trafegar.
+					const preview = await window.api.capture.scanPreview(false);
+					scanResult = \`\${preview.targets.length} alvo(s) · \${preview.scanMs} ms\`;
+				} catch (error) {
+					scanResult = "falhou: " + (error && error.message ? error.message : error);
+				}
+				render();
 			});
 		}
 
@@ -313,7 +310,7 @@ function buildHtml(side: "left" | "right") {
 		}
 
 		async function refresh() {
-			[macros, profiles] = await Promise.all([window.api.macro.list(), window.api.capture.listProfiles()]);
+			[macros, captureConfig] = await Promise.all([window.api.macro.list(), window.api.capture.get()]);
 			render();
 		}
 
@@ -322,8 +319,9 @@ function buildHtml(side: "left" | "right") {
 			render();
 		});
 
-		window.api.capture.onProfilesChanged((updated) => {
-			profiles = updated;
+		window.api.capture.onChanged((updated) => {
+			captureConfig = updated;
+			scanResult = "";
 			render();
 		});
 
