@@ -293,14 +293,17 @@ comportamento intermediário é o mesmo de antes e T14 apaga o shim.
 
 **Done when:**
 
-- [ ] Cada summary novo é notificado no máximo uma vez.
-- [ ] Mensagens não citam nome de perfil.
-- [ ] Sucesso com disparos continua sem toast.
-- [ ] `npm run verify` passa.
+- [x] Cada summary novo é notificado no máximo uma vez.
+- [x] Mensagens não citam nome de perfil.
+- [x] Sucesso com disparos continua sem toast.
+- [x] `npm run verify` passa.
 
 **Tests:** none — notificações cobertas pelo UAT manual
 **Gate:** Build
 **Commit:** `refactor(captures): notify global run results`
+**Status:** ✅ Complete — o hook consome o estado singleton, a dedupe usa a identidade do último
+`lastRun` e as mensagens perderam o nome do perfil sem mudar as regras de erro, foco, sem
+template e nenhum alvo. A query de perfis saiu do hook.
 
 ### Phase 4: Interface unificada
 

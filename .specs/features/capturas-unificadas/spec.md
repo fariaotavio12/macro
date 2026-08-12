@@ -174,9 +174,9 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-21 | P2: Operação | Tasks | In Progress (T6) |
 | CAP-22 | P2: Operação | Tasks | In Progress (T6) |
 | CAP-23 | P2: Operação | Tasks | In Progress (T9) |
-| CAP-24 | P2: Operação | Tasks | In Progress (T9) |
+| CAP-24 | P2: Operação | Tasks | In Progress (T10) |
 | CAP-25 | P2: Operação | Tasks | In Progress (T6) |
-| CAP-26 | P2: Operação | Tasks | In Progress (T6) |
+| CAP-26 | P2: Operação | Tasks | In Progress (T10) |
 | CAP-27 | Edge cases | Tasks | In Progress (T4) |
 | CAP-28 | Edge cases | Tasks | In Progress (T1) |
 | CAP-29 | Edge cases | Tasks | In Progress (T8) |
