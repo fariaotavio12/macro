@@ -164,7 +164,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-11 | P1: Autosave | Tasks | In Progress (T8) |
 | CAP-12 | P1: Autosave | Tasks | In Progress (T8) |
 | CAP-13 | P1: Autosave | Tasks | In Progress (T8) |
-| CAP-14 | P1: Autosave | Tasks | In Progress (T8) |
+| CAP-14 | P1: Autosave | Tasks | In Progress (T12) |
 | CAP-15 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-16 | P1: Migração | Tasks | Implemented (T3) |
 | CAP-17 | P1: Migração | Tasks | Implemented (T3) |
@@ -175,7 +175,7 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | CAP-22 | P2: Operação | Tasks | In Progress (T6) |
 | CAP-23 | P2: Operação | Tasks | In Progress (T9) |
 | CAP-24 | P2: Operação | Tasks | In Progress (T10) |
-| CAP-25 | P2: Operação | Tasks | In Progress (T6) |
+| CAP-25 | P2: Operação | Tasks | In Progress (T12) |
 | CAP-26 | P2: Operação | Tasks | In Progress (T10) |
 | CAP-27 | Edge cases | Tasks | In Progress (T4) |
 | CAP-28 | Edge cases | Tasks | In Progress (T1) |

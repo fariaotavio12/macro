@@ -341,15 +341,18 @@ snapshot e o grid alterna entre uma e duas colunas conforme a largura.
 
 **Done when:**
 
-- [ ] O dialog consulta preview sem ID.
-- [ ] Labels de templates vêm da configuração exibida.
-- [ ] Mensagens não citam perfil.
-- [ ] Reabrir continua forçando uma varredura nova.
-- [ ] `npm run verify` passa.
+- [x] O dialog consulta preview sem ID.
+- [x] Labels de templates vêm da configuração exibida.
+- [x] Mensagens não citam perfil.
+- [x] Reabrir continua forçando uma varredura nova.
+- [x] `npm run verify` passa.
 
 **Tests:** none — preview coberto pelo UAT manual
 **Gate:** Build + UAT
 **Commit:** `refactor(captures): preview global config`
+**Status:** ✅ Complete — o dialog recebe o `CaptureConfig` exibido, consulta o canal global sem
+ID e resolve labels, avisos de área e passadas a partir do mesmo snapshot. O cache efêmero e
+`refetchOnMount: "always"` preservam uma varredura nova a cada abertura.
 
 #### T13: Substituir a tabela pela página unificada
 

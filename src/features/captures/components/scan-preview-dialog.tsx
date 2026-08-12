@@ -11,22 +11,22 @@ import {
 	LoadingSpinner,
 } from "@/components";
 import { Typography } from "@/components/typography";
-import type { CaptureProfile } from "@shared/capture-types";
+import type { CaptureConfig } from "@shared/capture-types";
 import { useCaptureScanPreview } from "../api";
 
 type ScanPreviewDialogProps = {
-	profile: CaptureProfile;
+	config: CaptureConfig;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 };
 
 const percent = (value: number, total: number) => `${(value / total) * 100}%`;
 
-export const ScanPreviewDialog = ({ profile, open, onOpenChange }: ScanPreviewDialogProps) => {
+export const ScanPreviewDialog = ({ config, open, onOpenChange }: ScanPreviewDialogProps) => {
 	const { data: preview, isFetching, isError, refetch } = useCaptureScanPreview(open);
 
 	const templateName = (templateId: string) =>
-		profile.templates.find((template) => template.id === templateId)?.name ?? "—";
+		config.templates.find((template) => template.id === templateId)?.name ?? "—";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,13 +79,13 @@ export const ScanPreviewDialog = ({ profile, open, onOpenChange }: ScanPreviewDi
 						<div className="flex flex-wrap items-center gap-2">
 							<Badge variant="outline">{preview.targets.length} alvo(s)</Badge>
 							<Badge variant="outline">{preview.scanMs} ms de varredura</Badge>
-							{profile.rescanPasses > 1 && (
+							{config.rescanPasses > 1 && (
 								<Typography variant="caption" className="text-muted-foreground">
-									O teste faz uma varredura só. Em jogo, o perfil repete até {profile.rescanPasses}x para pegar corpo
+									O teste faz uma varredura só. Em jogo, a captura repete até {config.rescanPasses}x para pegar corpo
 									empilhado.
 								</Typography>
 							)}
-							{!profile.scanRegion && (
+							{!config.scanRegion && (
 								<Typography variant="caption" className="text-muted-foreground">
 									Sem área definida — a varredura cobre a tela toda e pode achar sprites da própria interface do jogo.
 								</Typography>

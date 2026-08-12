@@ -374,7 +374,7 @@ export const CaptureEditorSheet = ({ profile, mode, open, onOpenChange }: Captur
 				</TabsContents>
 			</Tabs>
 
-			{previewOpen && <ScanPreviewDialog profile={draft} open={previewOpen} onOpenChange={setPreviewOpen} />}
+			{previewOpen && <ScanPreviewDialog config={draft} open={previewOpen} onOpenChange={setPreviewOpen} />}
 		</AppSheet>
 	);
 };
