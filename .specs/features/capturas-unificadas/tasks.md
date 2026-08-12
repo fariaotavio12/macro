@@ -317,16 +317,19 @@ template e nenhum alvo. A query de perfis saiu do hook.
 
 **Done when:**
 
-- [ ] Pokémon, Disparo e Área são renderizados sem tabs.
-- [ ] Avançado começa recolhido e contém todos os campos avançados atuais.
-- [ ] Todo campo emite um novo snapshot sem salvar por conta própria.
-- [ ] Layout funciona em uma e duas colunas conforme largura disponível.
-- [ ] Nenhum campo existente de configuração é perdido.
-- [ ] `npm run verify` passa.
+- [x] Pokémon, Disparo e Área são renderizados sem tabs.
+- [x] Avançado começa recolhido e contém todos os campos avançados atuais.
+- [x] Todo campo emite um novo snapshot sem salvar por conta própria.
+- [x] Layout funciona em uma e duas colunas conforme largura disponível.
+- [x] Nenhum campo existente de configuração é perdido.
+- [x] `npm run verify` passa.
 
 **Tests:** none — interface coberta pelo UAT manual
 **Gate:** Build + UAT
 **Commit:** `feat(captures): add inline config form`
+**Status:** ✅ Complete — formulário controlado dividido em Pokémon, Disparo e Área, com
+Avançado recolhido por padrão. Todos os campos do editor anterior emitem apenas patches do
+snapshot e o grid alterna entre uma e duas colunas conforme a largura.
 
 #### T12: Adaptar o preview para a configuração global
 

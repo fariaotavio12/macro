@@ -152,12 +152,12 @@ A tela de Capturas apresenta uma tabela de perfis, mas todas as ações úteis f
 | Requirement ID | Story | Phase | Status |
 | --- | --- | --- | --- |
 | CAP-01 | P1: Página única | Tasks | In Tasks |
-| CAP-02 | P1: Página única | Tasks | In Tasks |
-| CAP-03 | P1: Página única | Tasks | In Tasks |
-| CAP-04 | P1: Página única | Tasks | In Tasks |
+| CAP-02 | P1: Página única | Tasks | In Progress (T11) |
+| CAP-03 | P1: Página única | Tasks | In Progress (T11) |
+| CAP-04 | P1: Página única | Tasks | In Progress (T11) |
 | CAP-05 | P1: Página única | Tasks | In Progress (T4) |
-| CAP-06 | P1: Página única | Tasks | In Tasks |
-| CAP-07 | P1: Página única | Tasks | In Tasks |
+| CAP-06 | P1: Página única | Tasks | In Progress (T11) |
+| CAP-07 | P1: Página única | Tasks | In Progress (T11) |
 | CAP-08 | P1: Autosave | Tasks | In Progress (T8) |
 | CAP-09 | P1: Autosave | Tasks | In Progress (T8) |
 | CAP-10 | P1: Autosave | Tasks | In Progress (T8) |
