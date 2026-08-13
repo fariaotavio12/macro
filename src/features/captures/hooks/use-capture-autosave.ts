@@ -133,7 +133,11 @@ export const useCaptureAutosave = () => {
 			failWaiters(new Error("A tela de Capturas foi fechada antes do salvamento terminar."));
 			const snapshot = draftRef.current;
 			if (!snapshot) return;
-			if (savedRevision.current >= revision.current || inFlight.current === revision.current) return;
+			if (savedRevision.current >= revision.current) return;
+			// Já existe save no ar: o laço do `pump` sobrevive ao unmount e vai gravar a revisão
+			// mais nova quando o atual terminar. Disparar aqui criaria duas escritas paralelas e
+			// a antiga poderia terminar por último, sobrescrevendo o snapshot mais recente.
+			if (inFlight.current !== null) return;
 			void mutateAsync(snapshot).catch((cause) => console.error("[capture] autosave pendente falhou:", cause));
 		},
 		[failWaiters, mutateAsync],

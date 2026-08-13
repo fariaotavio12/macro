@@ -24,6 +24,8 @@ export const PageCaptures = () => {
 	const [previewOpen, setPreviewOpen] = useState(false);
 	const [openingPreview, setOpeningPreview] = useState(false);
 	const running = runState.status === "scanning" || runState.status === "acting";
+	// Sem pokémon ativo com imagem não há o que detectar — mesmo critério do dock.
+	const hasUsableTemplate = draft?.templates.some((template) => template.enabled && template.imagePath) ?? false;
 
 	const openPreview = async () => {
 		setOpeningPreview(true);
@@ -72,7 +74,13 @@ export const PageCaptures = () => {
 					) : (
 						<Badge variant="success">Salvo</Badge>
 					)}
-					<Button type="button" variant="outline" onClick={() => void openPreview()} disabled={openingPreview}>
+					<Button
+						type="button"
+						variant="outline"
+						onClick={() => void openPreview()}
+						disabled={openingPreview || !hasUsableTemplate}
+						title={hasUsableTemplate ? undefined : "Ative um Pokémon com imagem para testar a detecção."}
+					>
 						<ScanSearch className="size-4" />
 						{openingPreview ? "Salvando..." : "Testar detecção"}
 					</Button>
