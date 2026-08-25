@@ -4,7 +4,7 @@ import path from "node:path";
 import { registerIpcHandlers } from "./ipc";
 import { setMainWindow } from "./window-ref";
 import { ensureUiohookStarted, shutdownUiohook } from "./engine/uiohook-runtime";
-import { registerHotkeyListener, syncHotkeysFromStorage } from "./engine/hotkeys";
+import { registerHotkeyListener, releaseHotkeys, syncHotkeysFromStorage } from "./engine/hotkeys";
 import { resolveImagePath } from "./engine/storage";
 import { createTray } from "./tray";
 import { isQuitting } from "./window-ref";
@@ -106,4 +106,8 @@ app.whenReady().then(() => {
 	registerHotkeyListener();
 	syncHotkeysFromStorage();
 	createWindow();
+});
+
+app.on("will-quit", () => {
+	releaseHotkeys();
 });

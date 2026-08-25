@@ -1,3 +1,4 @@
+import { globalShortcut } from "electron";
 import { uIOhook } from "uiohook-napi";
 import type { Macro, Settings } from "../../shared/macro-types";
 import type { CaptureConfig } from "../../shared/capture-types";
@@ -10,6 +11,7 @@ import { checkWindowFocus } from "./window-focus";
 import { IpcChannel } from "../../shared/ipc-channels";
 import type { PlayState } from "../../shared/macro-types";
 import { sendToRenderer } from "../window-ref";
+import { createCaptureSystemHotkey } from "./capture-system-hotkey";
 
 type Combo = string;
 
@@ -30,8 +32,10 @@ export function comboKey(keys: CanonicalKey[]): Combo {
 let hotkeyMap = new Map<Combo, Macro>();
 /** Uma única configuração de Capturas concorre pelos atalhos. */
 let captureConfig: CaptureConfig | null = null;
+let captureSystemHotkeyRegistered = false;
 let panicCombo: Combo = "Escape";
 let listening = false;
+const captureSystemHotkey = createCaptureSystemHotkey(globalShortcut);
 
 // Segurar a tecla gera key-repeat do Windows. Sem debounce, o modo loop
 // ligaria e desligaria dezenas de vezes num único toque.
@@ -75,7 +79,7 @@ function onKeydown(e: KeydownEvent) {
 		return;
 	}
 
-	if (captureConfig?.hotkey === combo && !isDebounced(combo)) {
+	if (captureConfig?.hotkey === combo && !captureSystemHotkeyRegistered && !isDebounced(combo)) {
 		triggerCapture(captureConfig, "hotkey");
 	}
 }
@@ -107,6 +111,12 @@ export function syncHotkeys(macros: Macro[], config: CaptureConfig, settings: Se
 		}
 	}
 	captureConfig = config.active && config.hotkey ? config : null;
+	captureSystemHotkeyRegistered = captureSystemHotkey.sync(config, () => {
+		if (captureConfig?.hotkey && !isDebounced(captureConfig.hotkey)) triggerCapture(captureConfig, "hotkey");
+	});
+	if (captureConfig && !captureSystemHotkeyRegistered) {
+		console.warn(`[capture] Windows shortcut registration failed for "${captureConfig.hotkey}"; using uIOhook fallback.`);
+	}
 	panicCombo = settings.panicKey;
 }
 
@@ -118,6 +128,11 @@ export function registerHotkeyListener() {
 	if (listening) return;
 	uIOhook.on("keydown", onKeydown);
 	listening = true;
+}
+
+export function releaseHotkeys() {
+	captureSystemHotkey.release();
+	captureSystemHotkeyRegistered = false;
 }
 
 type ComboOwner = { kind: "panic" } | { kind: "macro"; name: string } | { kind: "capture" };
